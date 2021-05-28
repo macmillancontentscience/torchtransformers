@@ -21,11 +21,24 @@ the result to the residual, then applies layer normalization to the sum.
 \section{Shape}{
 
 
-Make this right.
-- Input: \eqn{(N, *)}
-- Output: \eqn{(N, *)} (same shape as input)
+Inputs:
+
+- input: \eqn{(input_size, *)}
+- residual: \eqn{(output_size, *)}
+
+Output:
+
+- \eqn{(output_size, *)}
 }
 
 \examples{
+\dontrun{
+in_size <- 4L
+out_size <- 3L
+model <- proj_add_norm(input_size = in_size, output_size = out_size)
+input <- torch::torch_randn(in_size)
+residual <- torch::torch_randn(out_size)
+model(input, residual)
+}
 
 }

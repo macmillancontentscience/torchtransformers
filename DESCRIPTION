@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9000
+Version: 0.0.0.9001
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -25,3 +25,6 @@ License: Apache License (>= 2)
 RoxygenNote: 7.1.1
 Imports:
     torch (>= 0.3.0.9)
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
