@@ -13,6 +13,7 @@
 #' Inputs:
 #'
 #' - input: \eqn{(input_size, *)}
+#'
 #' - residual: \eqn{(output_size, *)}
 #'
 #' Output:
