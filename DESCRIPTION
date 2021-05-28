@@ -1,0 +1,27 @@
+Package: torchtransformers
+Title: Transformer Models in Torch
+Version: 0.0.0.9000
+Authors@R: c(
+    person(given = "Jonathan",
+           family = "Bratt",
+           role = c("aut", "cre"),
+           email = "jonathan.bratt@macmillan.com",
+           comment = c(ORCID = "0000-0003-2859-0076")),
+    person(given = "Jon",
+           family = "Harmon",
+           role = c("aut"),
+           email = "jonthegeek@gmail.com",
+           comment = c(ORCID = "0000-0003-4781-4346")),
+    person(given = "Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning", 
+           role = c("cph"))
+    )
+Description: Work with transformer models in R using torch.
+Encoding: UTF-8
+LazyData: true
+URL: https://github.com/macmillancontentscience/torchtransformers
+BugReports: https://github.com/macmillancontentscience/torchtransformers/issues
+Depends: R (>= 3.5.1)
+License: Apache License (>= 2)
+RoxygenNote: 7.0.2
+Imports:
+    torch (>= 0.3.0.9)
