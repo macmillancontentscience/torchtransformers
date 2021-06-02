@@ -21,23 +21,19 @@
 #' - \eqn{(output_size, *)}
 #'
 #' @examples
-#' \dontrun{
 #' in_size <- 4L
 #' out_size <- 3L
 #' model <- proj_add_norm(input_size = in_size, output_size = out_size)
 #' input <- torch::torch_randn(in_size)
 #' residual <- torch::torch_randn(out_size)
 #' model(input, residual)
-#' }
 #'
 #' @export
 proj_add_norm <- torch::nn_module(
   "proj_add_norm",
-  # find better names for dimensions here
   initialize = function(input_size, output_size, p_dropout = 0.1) {
     self$dense <- torch::nn_linear(input_size, output_size)
     self$dropout <- torch::nn_dropout(p = p_dropout)
-    # self$layer_norm <- custom_layer_norm(hidden_size)
     self$layer_norm <- torch::nn_layer_norm(
       normalized_shape = output_size,
       eps = 1e-12 # cf BERT
