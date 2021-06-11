@@ -30,10 +30,10 @@ position_embedding <- torch::nn_module(
     # promote this to proper param?
     std <- 0.02
     # todo on GPU: check that device is set properly!
-    self$pos_emb <- torch::torch_empty(max_position_embeddings,
+    self$pos_emb0 <- torch::torch_empty(max_position_embeddings,
                                        embedding_size)
-    torch::nn_init_trunc_normal_(self$pos_emb, std = std, a = -2*std, b = 2*std)
-    torch::nn_parameter(self$pos_emb)
+    torch::nn_init_trunc_normal_(self$pos_emb0, std = std, a = -2*std, b = 2*std)
+    self$pos_emb <- torch::nn_parameter(self$pos_emb0)
   },
 
   forward = function(seq_len_cap = NULL) {
@@ -43,7 +43,7 @@ position_embedding <- torch::nn_module(
     pe <- self$pos_emb
 
     if (!is.null(seq_len_cap)) {
-      mpe <- pos_emb$shape[[1]]
+      mpe <- self$pos_emb$shape[[1]]
       if (seq_len_cap <= mpe) {
         pe <- self$pos_emb[1:seq_len_cap, ]
       } else {
