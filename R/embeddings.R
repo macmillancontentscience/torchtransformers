@@ -27,7 +27,7 @@
 position_embedding <- torch::nn_module(
   "position_embedding",
   initialize = function(embedding_size, max_position_embeddings) {
-    # promote this to proper param?
+    # Maybe eventually promote this to proper param.
     std <- 0.02
     # todo on GPU: check that device is set properly!
     self$pos_emb0 <- torch::torch_empty(max_position_embeddings,
