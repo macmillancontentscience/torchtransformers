@@ -31,6 +31,8 @@ test_that("proj_add_norm module works", {
 
   test_result <- test_model(in1, in2)
   # these results were validated using RBERT/tf2
-  expected_result <- torch::torch_tensor(t(c(-0.2365, 0.7227, 0.3705)))
-  testthat::expect_equal(test_result, expected_result, tolerance = 0.0001)
+  expected_result <- array(c(-0.2365, 0.7227, 0.3705), dim = c(1, 3))
+
+  testthat::expect_equal(torch::as_array(test_result),
+                         expected_result, tolerance = 0.0001)
 })
