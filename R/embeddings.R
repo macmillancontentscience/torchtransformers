@@ -14,7 +14,8 @@
 #'
 #'   Inputs:
 #'
-#'   No input tensors. Optional input parameter to limit number of positions...
+#'   No input tensors. Optional input parameter to limit number of positions
+#'   (tokens) considered.
 #'
 #'   Output:
 #'
@@ -30,7 +31,7 @@ position_embedding <- torch::nn_module(
     std <- 0.02
     # todo on GPU: check that device is set properly!
     self$pos_emb <- torch::torch_empty(max_position_embeddings,
-                             embedding_size)
+                                       embedding_size)
     torch::nn_init_trunc_normal_(self$pos_emb, std = std, a = -2*std, b = 2*std)
     torch::nn_parameter(self$pos_emb)
   },
@@ -53,7 +54,7 @@ position_embedding <- torch::nn_module(
     }
 
     # We'll need to broadcast the embeddings to every example in the batch, so
-    # unsqueeze that dimension. (Is this always the second dimension?)
+    # unsqueeze the batch dimension.
     return(pe$unsqueeze(2))
   }
 )
