@@ -22,7 +22,12 @@
 #'   - \eqn{(max_position_embeddings, *, embedding_size)}
 #'
 #' @examples
-#'
+#' emb_size <- 3L
+#' mpe <- 2L
+#' model <- position_embedding(embedding_size = emb_size,
+#'                             max_position_embeddings = mpe)
+#' model(seq_len_cap = 1)
+#' model()
 #' @export
 position_embedding <- torch::nn_module(
   "position_embedding",
@@ -31,8 +36,9 @@ position_embedding <- torch::nn_module(
     std <- 0.02
     # todo on GPU: check that device is set properly!
     self$pos_emb0 <- torch::torch_empty(max_position_embeddings,
-                                       embedding_size)
-    torch::nn_init_trunc_normal_(self$pos_emb0, std = std, a = -2*std, b = 2*std)
+                                        embedding_size)
+    torch::nn_init_trunc_normal_(self$pos_emb0, std = std,
+                                 a = -2*std, b = 2*std)
     self$pos_emb <- torch::nn_parameter(self$pos_emb0)
   },
 

@@ -33,5 +33,10 @@ weights.
 }
 
 \examples{
-
+emb_size <- 3L
+mpe <- 2L
+model <- position_embedding(embedding_size = emb_size,
+                            max_position_embeddings = mpe)
+model(seq_len_cap = 1)
+model()
 }
