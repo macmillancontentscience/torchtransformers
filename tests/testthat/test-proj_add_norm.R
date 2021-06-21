@@ -3,6 +3,7 @@ test_that("proj_add_norm module works", {
   n_out <- 3L
 
   # get "random" values for inputs and weights
+  RNGkind(kind = "Mersenne-Twister")
   set.seed(23)
   inv1 <- matrix(sample(1:10, size = n_in, replace = TRUE) / 10,
                  nrow = 1, ncol = n_in)
