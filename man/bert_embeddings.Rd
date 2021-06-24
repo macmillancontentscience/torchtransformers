@@ -12,32 +12,46 @@ bert_embeddings(
   hidden_dropout = 0.1
 )
 }
+\arguments{
+\item{hidden_dropout}{}
+}
 \description{
-There are three components to the input embeddings in a BERT model: the
-embedding of the tokens themselves, the segment ("token type") embedding, and
-the position (token index) embedding. This function sets up the embedding
-layer for all three of these.
+There are three components which are added together to give the input
+embeddings in a BERT model: the embedding of the tokens themselves, the
+segment ("token type") embedding, and the position (token index) embedding.
+This function sets up the embedding layer for all three of these.
 }
 \details{
 This will eventually inherit from a higher-level function.
 }
 \section{Shape}{
 
-# still need to fill this part out!
+
   Inputs:
 
-  - input_ids: \eqn{(input_size, *)}
+  - input_ids: \eqn{(max_position_embeddings, *)}
 
-  - token_type_ids: \eqn{(output_size, *)}
+  - token_type_ids: \eqn{(max_position_embeddings, *)}
 
-  Optional input parameter `seq_len_cap` to limit number of positions
-  (tokens) considered.
 
   Output:
 
-  - \eqn{(embedding_size, *)}
+  - \eqn{(max_position_embeddings, *, embedding_size)}
 }
 
 \examples{
+emb_size <- 3L
+mpe <- 5L
+vs <- 7L
+n_inputs <- 2L
+# get random "ids" for input
+t_ids <- matrix(sample(2:vs, size = mpe*n_inputs, replace = TRUE),
+                nrow = mpe, ncol = n_inputs)
+ttype_ids <- matrix(rep(1L, mpe*n_inputs), nrow = mpe, ncol = n_inputs)
 
+test_model <- bert_embeddings(embedding_size = emb_size,
+                              max_position_embeddings = mpe,
+                              vocab_size = vs)
+test_model(torch::torch_tensor(t_ids),
+           torch::torch_tensor(ttype_ids))
 }
