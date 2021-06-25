@@ -13,7 +13,18 @@ bert_embeddings(
 )
 }
 \arguments{
-\item{hidden_dropout}{}
+\item{embedding_size}{Integer; the dimension of the embedding vectors.}
+
+\item{max_position_embeddings}{Integer; maximum number of tokens in each
+input sequence.}
+
+\item{vocab_size}{Integer; number of tokens in vocabulary.}
+
+\item{token_type_vocab_size}{Integer; number of input segments that the model
+will recognize. (Two for BERT models.)}
+
+\item{hidden_dropout}{Numeric; the dropout probability to apply to dense
+layers.}
 }
 \description{
 There are three components which are added together to give the input
@@ -21,22 +32,21 @@ embeddings in a BERT model: the embedding of the tokens themselves, the
 segment ("token type") embedding, and the position (token index) embedding.
 This function sets up the embedding layer for all three of these.
 }
-\details{
-This will eventually inherit from a higher-level function.
-}
 \section{Shape}{
 
 
+With `sequence_length` <= `max_position_embeddings`:
+
   Inputs:
 
-  - input_ids: \eqn{(max_position_embeddings, *)}
+  - input_ids: \eqn{(sequence_length, *)}
 
-  - token_type_ids: \eqn{(max_position_embeddings, *)}
+  - token_type_ids: \eqn{(sequence_length, *)}
 
 
   Output:
 
-  - \eqn{(max_position_embeddings, *, embedding_size)}
+  - \eqn{(sequence_length, *, embedding_size)}
 }
 
 \examples{
@@ -45,13 +55,13 @@ mpe <- 5L
 vs <- 7L
 n_inputs <- 2L
 # get random "ids" for input
-t_ids <- matrix(sample(2:vs, size = mpe*n_inputs, replace = TRUE),
+t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
                 nrow = mpe, ncol = n_inputs)
-ttype_ids <- matrix(rep(1L, mpe*n_inputs), nrow = mpe, ncol = n_inputs)
+ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
 
-test_model <- bert_embeddings(embedding_size = emb_size,
-                              max_position_embeddings = mpe,
-                              vocab_size = vs)
-test_model(torch::torch_tensor(t_ids),
-           torch::torch_tensor(ttype_ids))
+model <- bert_embeddings(embedding_size = emb_size,
+                         max_position_embeddings = mpe,
+                         vocab_size = vs)
+model(torch::torch_tensor(t_ids),
+      torch::torch_tensor(ttype_ids))
 }

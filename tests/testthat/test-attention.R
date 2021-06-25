@@ -12,14 +12,15 @@ test_that("attention module works", {
   RNGkind(kind = "Mersenne-Twister")
   set.seed(23)
   test_input <- array(sample(-10:10,
-                             size = batch_size*seq_len*emb_size,
+                             size = batch_size * seq_len * emb_size,
                              replace = TRUE) / 10,
               dim = c(seq_len, batch_size, emb_size))
-  aipw <- array(sample(-10:10, size = 3*emb_size*emb_size, replace = TRUE) / 10,
+  aipw <- array(sample(-10:10, size = 3 * emb_size * emb_size,
+                       replace = TRUE) / 10,
              dim = c(3*emb_size, emb_size))
-  aipb <- array(sample(-10:10, size = 3*emb_size, replace = TRUE) / 10,
+  aipb <- array(sample(-10:10, size = 3 * emb_size, replace = TRUE) / 10,
                 dim = c(3*emb_size))
-  aopw <- array(sample(-10:10, size = emb_size*emb_size, replace = TRUE) / 10,
+  aopw <- array(sample(-10:10, size = emb_size * emb_size, replace = TRUE) / 10,
                 dim = c(emb_size, emb_size))
   aopb <- array(sample(-10:10, size = emb_size, replace = TRUE) / 10,
                    dim = c(emb_size))

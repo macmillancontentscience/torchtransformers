@@ -11,9 +11,7 @@
 #' the actual input, it is implemented by simply initializing a matrix of
 #' weights.
 #'
-#' @param embedding_size Integer; the size of the embedding space.
-#' @param max_position_embeddings Integer; the maximum number of positions
-#'   supported.
+#' @inheritParams BERT
 #'
 #' @section Shape:
 #'
@@ -80,25 +78,22 @@ position_embedding <- torch::nn_module(
 #' segment ("token type") embedding, and the position (token index) embedding.
 #' This function sets up the embedding layer for all three of these.
 #'
-#' This will eventually inherit from a higher-level function.
-#' @param embedding_size
-#' @param max_position_embeddings
-#' @param vocab_size
-#' @param token_type_vocab_size
-#' @param hidden_dropout
+#' @inheritParams BERT
 #'
 #' @section Shape:
 #'
+#' With `sequence_length` <= `max_position_embeddings`:
+#'
 #'   Inputs:
 #'
-#'   - input_ids: \eqn{(max_position_embeddings, *)}
+#'   - input_ids: \eqn{(sequence_length, *)}
 #'
-#'   - token_type_ids: \eqn{(max_position_embeddings, *)}
+#'   - token_type_ids: \eqn{(sequence_length, *)}
 #'
 #'
 #'   Output:
 #'
-#'   - \eqn{(max_position_embeddings, *, embedding_size)}
+#'   - \eqn{(sequence_length, *, embedding_size)}
 #'
 #' @examples
 #' emb_size <- 3L
@@ -106,15 +101,15 @@ position_embedding <- torch::nn_module(
 #' vs <- 7L
 #' n_inputs <- 2L
 #' # get random "ids" for input
-#' t_ids <- matrix(sample(2:vs, size = mpe*n_inputs, replace = TRUE),
+#' t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
 #'                 nrow = mpe, ncol = n_inputs)
-#' ttype_ids <- matrix(rep(1L, mpe*n_inputs), nrow = mpe, ncol = n_inputs)
+#' ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
 #'
-#' test_model <- bert_embeddings(embedding_size = emb_size,
-#'                               max_position_embeddings = mpe,
-#'                               vocab_size = vs)
-#' test_model(torch::torch_tensor(t_ids),
-#'            torch::torch_tensor(ttype_ids))
+#' model <- bert_embeddings(embedding_size = emb_size,
+#'                          max_position_embeddings = mpe,
+#'                          vocab_size = vs)
+#' model(torch::torch_tensor(t_ids),
+#'       torch::torch_tensor(ttype_ids))
 #' @export
 bert_embeddings <- torch::nn_module(
   "bert_embeddings",
