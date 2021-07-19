@@ -31,7 +31,7 @@ test_that("position embedding module works", {
 })
 
 
-test_that("BERT embedding module works", {
+test_that("embeddings_bert module works", {
   emb_size <- 3L
   mpe <- 5L
   vs <- 7L
@@ -60,7 +60,7 @@ test_that("BERT embedding module works", {
                dim = emb_size)
 
 
-  test_model <- bert_embeddings(embedding_size = emb_size,
+  test_model <- embeddings_bert(embedding_size = emb_size,
                                 max_position_embeddings = mpe,
                                 vocab_size = vs)
   wts <- test_model$state_dict()
@@ -77,7 +77,7 @@ test_that("BERT embedding module works", {
   test_model$load_state_dict(wts)
   test_model$eval()
 
-  test_result <- test_model(input_ids = t_ids,
+  test_result <- test_model(token_ids = t_ids,
                             token_type_ids = ttype_ids)
 
   expected_result <- array(c(0.11484, -0.09223, 0.84912,
