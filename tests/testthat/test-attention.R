@@ -3,7 +3,7 @@ test_that("attention module works", {
   seq_len <- 3L
   n_head <- 2L
 
-  test_model <- bert_attention(embedding_size = emb_size,
+  test_model <- attention_bert(embedding_size = emb_size,
                                n_head = n_head)
 
   batch_size <- 1L

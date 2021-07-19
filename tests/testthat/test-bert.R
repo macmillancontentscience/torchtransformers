@@ -1,15 +1,15 @@
-test_that("the BERT module works", {
+test_that("the model_bert module works", {
 
   emb_size <- 64
   mpe <- 512
   n_head <- 4L
   n_layer <- 6L
   vocab_size <- 30522L
-  test_model <- BERT(embedding_size = emb_size,
-                     n_layer = n_layer,
-                     n_head = n_head,
-                     max_position_embeddings = mpe,
-                     vocab_size = vocab_size)
+  test_model <- model_bert(embedding_size = emb_size,
+                           n_layer = n_layer,
+                           n_head = n_head,
+                           max_position_embeddings = mpe,
+                           vocab_size = vocab_size)
 
   n_inputs <- 2L
   n_token_max <- 128L

@@ -71,14 +71,14 @@ model_bert <- torch::nn_module(
                         max_position_embeddings,
                         vocab_size,
                         token_type_vocab_size = 2L) {
-    self$embeddings <- bert_embeddings(
+    self$embeddings <- embeddings_bert(
       embedding_size = embedding_size,
       max_position_embeddings = max_position_embeddings,
       vocab_size = vocab_size,
       token_type_vocab_size = token_type_vocab_size,
       hidden_dropout = hidden_dropout)
 
-    self$encoder <- transformer_encoder(
+    self$encoder <- transformer_encoder_bert(
       embedding_size = embedding_size,
       intermediate_size = intermediate_size,
       n_layer = n_layer,
