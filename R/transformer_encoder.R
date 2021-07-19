@@ -5,9 +5,9 @@
 
 #' Single Transformer Layer
 #'
-#' Build a single layer of an attention-based transformer.
+#' Build a single layer of a BERT-style attention-based transformer.
 #'
-#' @inheritParams BERT
+#' @inheritParams model_bert
 #'
 #' @section Shape:
 #'
@@ -29,7 +29,7 @@
 #' n_head <- 2L
 #' batch_size <- 2L
 #'
-#' model <- transformer_encoder_single(embedding_size = emb_size,
+#' model <- transformer_encoder_single_bert(embedding_size = emb_size,
 #'                                     n_head = n_head)
 #' # get random values for input
 #' input <- array(sample(-10:10,
@@ -39,14 +39,14 @@
 #' input <- torch::torch_tensor(input)
 #' model(input)
 #' @export
-transformer_encoder_single <- torch::nn_module(
+transformer_encoder_single_bert <- torch::nn_module(
   "transformer_encoder_single",
   initialize = function(embedding_size,
                         intermediate_size = 4 * embedding_size,
                         n_head,
                         hidden_dropout = 0.1,
                         attention_dropout = 0.1) {
-    self$attention <- bert_attention(embedding_size = embedding_size,
+    self$attention <- attention_bert(embedding_size = embedding_size,
                                      n_head = n_head,
                                      attention_dropout = attention_dropout)
     # https://github.com/macmillancontentscience/torchtransformers/issues/4
@@ -78,9 +78,9 @@ transformer_encoder_single <- torch::nn_module(
 
 #'Transformer Stack
 #'
-#'Build a multi-layer attention-based transformer.
+#'Build a BERT-style multi-layer attention-based transformer.
 #'
-#' @inheritParams BERT
+#' @inheritParams model_bert
 #'
 #'@section Shape:
 #'
@@ -107,7 +107,7 @@ transformer_encoder_single <- torch::nn_module(
 #' n_layer <- 5L
 #' batch_size <- 2L
 #'
-#' model <- transformer_encoder(embedding_size = emb_size,
+#' model <- transformer_encoder_bert(embedding_size = emb_size,
 #'                              n_head = n_head,
 #'                              n_layer = n_layer)
 #' # get random values for input
@@ -118,7 +118,7 @@ transformer_encoder_single <- torch::nn_module(
 #' input <- torch::torch_tensor(input)
 #' model(input)
 #' @export
-transformer_encoder <- torch::nn_module(
+transformer_encoder_bert <- torch::nn_module(
   "transformer_encoder",
   initialize = function(embedding_size,
                         intermediate_size = 4 * embedding_size,
@@ -131,8 +131,8 @@ transformer_encoder <- torch::nn_module(
     self$encoder_layers <- torch::nn_module_list()
 
     for (layer_index in self$layer_indices) {
-      #figure out explicit naming later?
-      encoder_layer <- transformer_encoder_single(
+      # Right now we use default naming. Might want to give explicit names.
+      encoder_layer <- transformer_encoder_single_bert(
         embedding_size = embedding_size,
         intermediate_size = intermediate_size,
         n_head = n_head,
@@ -147,7 +147,7 @@ transformer_encoder <- torch::nn_module(
     layer_output_all <- list()
     attention_probs_all <- list()
     for (layer_index in self$layer_indices) {
-      encoder_layer <- self$encoder_layers[[layer_index ]]
+      encoder_layer <- self$encoder_layers[[layer_index]]
       layer_input <- layer_output
       layer_output_and_probs <- encoder_layer(layer_input, mask)
       layer_output <- layer_output_and_probs$embeddings
@@ -164,4 +164,3 @@ transformer_encoder <- torch::nn_module(
     return(final_output)
   }
 )
-

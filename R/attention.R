@@ -4,7 +4,7 @@
 #' attention layer and layer-norms the result. Returns both the attention
 #' weights and the output embeddings.
 #'
-#' @inheritParams BERT
+#' @inheritParams model_bert
 #'
 #' @section Shape:
 #'
@@ -26,7 +26,7 @@
 #' n_head <- 2L
 #' batch_size <- 2L
 #'
-#' model <- bert_attention(embedding_size = emb_size,
+#' model <- attention_bert(embedding_size = emb_size,
 #'                         n_head = n_head)
 #' # get random values for input
 #' input <- array(sample(-10:10,
@@ -36,7 +36,7 @@
 #' input <- torch::torch_tensor(input)
 #' model(input)
 #' @export
-bert_attention <- torch::nn_module(
+attention_bert <- torch::nn_module(
   "attention",
   initialize = function(embedding_size, n_head, attention_dropout = 0.1) {
     if (embedding_size %% n_head != 0) {
@@ -64,4 +64,3 @@ bert_attention <- torch::nn_module(
                 "weights" = att_wts))
   }
 )
-

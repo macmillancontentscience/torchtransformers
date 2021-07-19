@@ -11,7 +11,7 @@
 #' the actual input, it is implemented by simply initializing a matrix of
 #' weights.
 #'
-#' @inheritParams BERT
+#' @inheritParams model_bert
 #'
 #' @section Shape:
 #'
@@ -78,7 +78,7 @@ position_embedding <- torch::nn_module(
 #' segment ("token type") embedding, and the position (token index) embedding.
 #' This function sets up the embedding layer for all three of these.
 #'
-#' @inheritParams BERT
+#' @inheritParams model_bert
 #'
 #' @section Shape:
 #'
@@ -86,7 +86,7 @@ position_embedding <- torch::nn_module(
 #'
 #'   Inputs:
 #'
-#'   - input_ids: \eqn{(sequence_length, *)}
+#'   - token_ids: \eqn{(sequence_length, *)}
 #'
 #'   - token_type_ids: \eqn{(sequence_length, *)}
 #'
@@ -111,8 +111,8 @@ position_embedding <- torch::nn_module(
 #' model(torch::torch_tensor(t_ids),
 #'       torch::torch_tensor(ttype_ids))
 #' @export
-bert_embeddings <- torch::nn_module(
-  "bert_embeddings",
+embeddings_bert <- torch::nn_module(
+  "embeddings_bert",
   initialize = function(embedding_size,
                         max_position_embeddings,
                         vocab_size,
@@ -141,26 +141,25 @@ bert_embeddings <- torch::nn_module(
     self$dropout <- torch::nn_dropout(p = hidden_dropout)
   },
 
-  forward = function(input_ids, token_type_ids) {
+  forward = function(token_ids, token_type_ids) {
     # if we're using seq_len_cap, we need to apply it consistently here.
-    # figure out the right way to handle this!
     # The dimensions need to be compatible, so we should check/enforce this here.
 
-    input_length <- input_ids$shape[[1]]        # number of tokens in input...
+    input_length <- token_ids$shape[[1]]        # number of tokens in input...
     input_length2 <- token_type_ids$shape[[1]]  # ...should match!
     input_length3 <- self$position_embeddings$pos_emb$shape[[1]] # at most.
 
     if (input_length != input_length2) {
-      stop("Shape of input_ids should match shape of token_type_ids.")
+      stop("Shape of token_ids should match shape of token_type_ids.")
     }
     if (input_length <= input_length3) {
       seq_len_cap <- input_length # truncate to actual input sequence length
     } else {
       stop("Length of input exceeds maximum.")
-      # maybe we should just truncate input and continue?
+      # If truncation should be ok, it should happen before here.
     }
 
-    word_emb_output <- self$word_embeddings(input_ids)
+    word_emb_output <- self$word_embeddings(token_ids)
     tt_emb_output <- self$token_type_embeddings(token_type_ids)
     pos_emb_output <- self$position_embeddings(seq_len_cap)
 
@@ -172,5 +171,4 @@ bert_embeddings <- torch::nn_module(
     return(output)
   }
 )
-
 

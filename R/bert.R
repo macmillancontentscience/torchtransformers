@@ -23,7 +23,7 @@
 #'
 #'   With `sequence_length` <= `max_position_embeddings`:
 #'
-#'   - input_ids: \eqn{(sequence_length, *)}
+#'   - token_ids: \eqn{(sequence_length, *)}
 #'
 #'   - token_type_ids: \eqn{(sequence_length, *)}
 #'
@@ -39,11 +39,11 @@
 #'
 #' @examples
 #' emb_size <- 128L
-#' mpe <- 512
+#' mpe <- 512L
 #' n_head <- 4L
 #' n_layer <- 6L
-#' vocab_size <- 30522
-#' model <- BERT(embedding_size = emb_size,
+#' vocab_size <- 30522L
+#' model <- model_bert(embedding_size = emb_size,
 #'               n_layer = n_layer,
 #'               n_head = n_head,
 #'               max_position_embeddings = mpe,
@@ -60,7 +60,7 @@
 #' model(torch::torch_tensor(t_ids),
 #'       torch::torch_tensor(ttype_ids))
 #' @export
-BERT <- torch::nn_module(
+model_bert <- torch::nn_module(
   "BERT",
   initialize = function(embedding_size,
                         intermediate_size = 4 * embedding_size,
@@ -86,10 +86,10 @@ BERT <- torch::nn_module(
       hidden_dropout = hidden_dropout,
       attention_dropout = attention_dropout)
   },
-  forward = function(token_ids, ttype_ids) {
-    mask <- torch::torch_transpose(token_ids == 1, 1,2)
+  forward = function(token_ids, token_type_ids) {
+    mask <- torch::torch_transpose(token_ids == 1, 1, 2)
 
-    emb_out <- self$embeddings(token_ids, ttype_ids)
+    emb_out <- self$embeddings(token_ids, token_type_ids)
     output <- self$encoder(emb_out, mask)
 
     return(list("initial_embeddings" = emb_out,
@@ -97,5 +97,4 @@ BERT <- torch::nn_module(
                 "attention_weights" = output$weights))
   }
 )
-
 
