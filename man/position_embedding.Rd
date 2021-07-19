@@ -7,10 +7,10 @@
 position_embedding(embedding_size, max_position_embeddings)
 }
 \arguments{
-\item{embedding_size}{Integer; the size of the embedding space.}
+\item{embedding_size}{Integer; the dimension of the embedding vectors.}
 
-\item{max_position_embeddings}{Integer; the maximum number of positions
-supported.}
+\item{max_position_embeddings}{Integer; maximum number of tokens in each
+input sequence.}
 }
 \description{
 Position embeddings are how BERT-like language models represent the order of

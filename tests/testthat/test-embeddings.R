@@ -2,7 +2,8 @@ test_that("position embedding module works", {
   emb_size <- 3L
   mpe <- 2L
 
-  # get "random" values for and weights
+  # get "random" values for weights
+  RNGkind(kind = "Mersenne-Twister")
   set.seed(23)
   dm <- matrix(sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
                nrow = emb_size, ncol = mpe)
@@ -29,4 +30,61 @@ test_that("position embedding module works", {
                          expected_result, tolerance = 0.0001)
 })
 
+
+test_that("BERT embedding module works", {
+  emb_size <- 3L
+  mpe <- 5L
+  vs <- 7L
+
+  n_inputs <- 1L
+  # If inputs are smaller than max position embedding, it will cut off the
+  # position embedding.
+  cutoff <- 3L
+
+  # get "random" values for input and weights
+  RNGkind(kind = "Mersenne-Twister")
+  set.seed(23)
+  t_ids <- matrix(sample(2:vs, size = cutoff*n_inputs, replace = TRUE),
+                  nrow = cutoff, ncol = n_inputs)
+  ttype_ids <- matrix(rep(1L, cutoff*n_inputs), nrow = cutoff, ncol = n_inputs)
+
+  wew <- matrix(sample(1:10, size = vs * emb_size, replace = TRUE) / 10,
+               nrow = emb_size, ncol = vs)
+  ttew <- matrix(sample(1:10, size = 2 * emb_size, replace = TRUE) / 10,
+                nrow = emb_size, ncol = 2)
+  pepe <- matrix(sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
+                 nrow = emb_size, ncol = mpe)
+  lnw <- array(sample(1:10, size = emb_size, replace = TRUE) / 10,
+               dim = emb_size)
+  lnb <- array(sample(1:10, size = emb_size, replace = TRUE) / 10,
+               dim = emb_size)
+
+
+  test_model <- bert_embeddings(embedding_size = emb_size,
+                                max_position_embeddings = mpe,
+                                vocab_size = vs)
+  wts <- test_model$state_dict()
+  t_ids <- torch::torch_tensor(t_ids)
+  ttype_ids <- torch::torch_tensor(ttype_ids)
+
+  # set weights
+  wts$word_embeddings.weight <- torch::torch_tensor(t(wew))
+  wts$token_type_embeddings.weight <- torch::torch_tensor(t(ttew))
+  wts$position_embeddings.pos_emb <- torch::torch_tensor(t(pepe))
+  wts$layer_norm.weight <- torch::torch_tensor(lnw)
+  wts$layer_norm.bias <- torch::torch_tensor(lnb)
+
+  test_model$load_state_dict(wts)
+  test_model$eval()
+
+  test_result <- test_model(input_ids = t_ids,
+                            token_type_ids = ttype_ids)
+
+  expected_result <- array(c(0.11484, -0.09223, 0.84912,
+                             1.17775, 1.17456, 0.82155,
+                             0.11484, 0.22155, 0.10388),
+                           dim = c(3, 1, 3))
+  testthat::expect_equal(torch::as_array(test_result),
+                         expected_result, tolerance = 0.0001)
+})
 

@@ -4,14 +4,14 @@
 \alias{proj_add_norm}
 \title{Project, Add, and Normalize}
 \usage{
-proj_add_norm(input_size, output_size, p_dropout = 0.1)
+proj_add_norm(input_size, output_size, hidden_dropout = 0.1)
 }
 \arguments{
 \item{input_size}{Integer; the size of input tensor.}
 
 \item{output_size}{Integer; the size of output tensor (must match residual).}
 
-\item{p_dropout}{Numeric; dropout probability applied after projection.}
+\item{hidden_dropout}{Numeric; dropout probability applied after projection.}
 }
 \description{
 Takes in two tensors, an "input" and a "residual". Applies a linear projector
