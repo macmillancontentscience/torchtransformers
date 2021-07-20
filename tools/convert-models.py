@@ -1,4 +1,3 @@
-import torchvision
 import torch
 import requests
 from google.cloud import storage
