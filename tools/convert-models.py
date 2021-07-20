@@ -50,5 +50,5 @@ for name, url in models.items():
   upload_blob(
     "torchtransformers-models",
     fpath,
-    "name/v" + version + "/" + fpath 
+    name + "/v" + version + "/" + fpath 
   )
