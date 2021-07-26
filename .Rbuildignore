@@ -6,3 +6,4 @@
 ^\.github$
 ^tools/convert-models\.py$
 ^tools$
+^data-raw$
