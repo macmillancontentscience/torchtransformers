@@ -31,12 +31,12 @@ test_that("attention module works", {
 
   wts <- test_model$state_dict()
 
-  wts$attention.in_proj_weight <- torch::torch_tensor(aipw)
-  wts$attention.in_proj_bias <- torch::torch_tensor(aipb)
-  wts$attention.out_proj.weight <- torch::torch_tensor(aopw)
-  wts$attention.out_proj.bias <- torch::torch_tensor(aopb)
-  wts$layernorm.weight <- torch::torch_tensor(lnw)
-  wts$layernorm.bias <- torch::torch_tensor(lnb)
+  wts$self.in_proj_weight <- torch::torch_tensor(aipw)
+  wts$self.in_proj_bias <- torch::torch_tensor(aipb)
+  wts$self.out_proj.weight <- torch::torch_tensor(aopw)
+  wts$self.out_proj.bias <- torch::torch_tensor(aopb)
+  wts$output.layer_norm.weight <- torch::torch_tensor(lnw)
+  wts$output.layer_norm.bias <- torch::torch_tensor(lnb)
 
   test_model$load_state_dict(wts)
   test_model$eval()

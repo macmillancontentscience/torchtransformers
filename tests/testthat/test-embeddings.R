@@ -14,7 +14,7 @@ test_that("position embedding module works", {
   wts <- test_model$state_dict()
 
   # set weights
-  wts$pos_emb <- torch::torch_tensor(t(dm))
+  wts$weight <- torch::torch_tensor(t(dm))
 
   test_model$load_state_dict(wts)
   test_model$eval()
@@ -70,7 +70,7 @@ test_that("embeddings_bert module works", {
   # set weights
   wts$word_embeddings.weight <- torch::torch_tensor(t(wew))
   wts$token_type_embeddings.weight <- torch::torch_tensor(t(ttew))
-  wts$position_embeddings.pos_emb <- torch::torch_tensor(t(pepe))
+  wts$position_embeddings.weight <- torch::torch_tensor(t(pepe))
   wts$layer_norm.weight <- torch::torch_tensor(lnw)
   wts$layer_norm.bias <- torch::torch_tensor(lnb)
 

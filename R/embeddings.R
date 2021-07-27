@@ -148,7 +148,7 @@ embeddings_bert <- torch::nn_module(
 
     input_length <- token_ids$shape[[1]]        # number of tokens in input...
     input_length2 <- token_type_ids$shape[[1]]  # ...should match!
-    input_length3 <- self$position_embeddings$pos_emb$shape[[1]] # at most.
+    input_length3 <- self$position_embeddings$weight$shape[[1]] # at most.
 
     if (input_length != input_length2) {
       stop("Shape of token_ids should match shape of token_type_ids.")
