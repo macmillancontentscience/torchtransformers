@@ -42,11 +42,13 @@ attention_bert <- torch::nn_module(
     if (embedding_size %% n_head != 0) {
       stop("embedding_size should be a multiple of n_head.")
     }
-    self$attention <- torch::nn_multihead_attention(embed_dim = embedding_size,
-                                                    num_heads = n_head,
-                                                    dropout = attention_dropout)
+    # model variable name! ("self" attention)
+    self$selfa <- torch::nn_multihead_attention(embed_dim = embedding_size,
+                                                num_heads = n_head,
+                                                dropout = attention_dropout)
     # The built-in attention module already does a projection on the output, so
     # we just want to add residual and normalize.
+    # model variable name!
     self$layer_norm <-  torch::nn_layer_norm(
       normalized_shape = embedding_size,
       eps = 1e-12 # cf BERT
@@ -55,9 +57,9 @@ attention_bert <- torch::nn_module(
 
   forward = function(input, mask = NULL) {
     # pass along the mask here. TRUE means ignore..
-    output <- self$attention(input, input, input,
-                             key_padding_mask = mask,
-                             avg_weights = FALSE)
+    output <- self$selfa(input, input, input,
+                         key_padding_mask = mask,
+                         avg_weights = FALSE)
     att_wts <- output[[2]]
     output <- self$layer_norm(output[[1]] + input)
     return(list("embeddings" = output,

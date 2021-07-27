@@ -46,15 +46,19 @@ transformer_encoder_single_bert <- torch::nn_module(
                         n_head,
                         hidden_dropout = 0.1,
                         attention_dropout = 0.1) {
+    # model variable name!
     self$attention <- attention_bert(embedding_size = embedding_size,
                                      n_head = n_head,
                                      attention_dropout = attention_dropout)
     # https://github.com/macmillancontentscience/torchtransformers/issues/4
-    self$intermediate <- torch::nn_linear(embedding_size, intermediate_size)
+    # model variable name!
+    self$intermediate.dense <- torch::nn_linear(embedding_size,
+                                                intermediate_size)
 
-    self$projector <- proj_add_norm(input_size = intermediate_size,
-                                    output_size = embedding_size,
-                                    hidden_dropout = hidden_dropout)
+    # model variable name!
+    self$output <- proj_add_norm(input_size = intermediate_size,
+                                 output_size = embedding_size,
+                                 hidden_dropout = hidden_dropout)
   },
 
   forward = function(input, mask = NULL) {
@@ -62,11 +66,11 @@ transformer_encoder_single_bert <- torch::nn_module(
     attention_output <- attention_output_and_probs$embeddings
     attention_probs <- attention_output_and_probs$weights
 
-    intermediate_output <- self$intermediate(attention_output)
+    intermediate_output <- self$intermediate.dense(attention_output)
     intermediate_output <- torch::nnf_gelu(intermediate_output)
 
-    layer_output <- self$projector(input = intermediate_output,
-                                   residual = attention_output)
+    layer_output <- self$output(input = intermediate_output,
+                                residual = attention_output)
 
     return(list("embeddings" = layer_output, "weights" = attention_probs))
   }
@@ -128,7 +132,8 @@ transformer_encoder_bert <- torch::nn_module(
                         attention_dropout = 0.1) {
     self$layer_indices <- seq_len(n_layer)
 
-    self$encoder_layers <- torch::nn_module_list()
+    # model variable name!
+    self$layer <- torch::nn_module_list()
 
     for (layer_index in self$layer_indices) {
       # Right now we use default naming. Might want to give explicit names.
@@ -138,7 +143,7 @@ transformer_encoder_bert <- torch::nn_module(
         n_head = n_head,
         hidden_dropout = hidden_dropout,
         attention_dropout = attention_dropout)
-      self$encoder_layers$append(encoder_layer)
+      self$layer$append(encoder_layer)
     }
   },
 
@@ -147,7 +152,7 @@ transformer_encoder_bert <- torch::nn_module(
     layer_output_all <- list()
     attention_probs_all <- list()
     for (layer_index in self$layer_indices) {
-      encoder_layer <- self$encoder_layers[[layer_index]]
+      encoder_layer <- self$layer[[layer_index]]
       layer_input <- layer_output
       layer_output_and_probs <- encoder_layer(layer_input, mask)
       layer_output <- layer_output_and_probs$embeddings

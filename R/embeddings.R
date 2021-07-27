@@ -42,19 +42,20 @@ position_embedding <- torch::nn_module(
                                         embedding_size)
     torch::nn_init_trunc_normal_(self$pos_emb0, std = std,
                                  a = -2*std, b = 2*std)
-    self$pos_emb <- torch::nn_parameter(self$pos_emb0)
+    # model variable name!
+    self$weight <- torch::nn_parameter(self$pos_emb0)
   },
 
   forward = function(seq_len_cap = NULL) {
     # When the embedding layer is actually called, we can restrict number of
     # positions to be smaller than the initialized size. (e.g. if you know you
     # only need length-20 sequences, you can save a lot of time.)
-    pe <- self$pos_emb
+    pe <- self$weight
 
     if (!is.null(seq_len_cap)) {
-      mpe <- self$pos_emb$shape[[1]]
+      mpe <- self$weight$shape[[1]]
       if (seq_len_cap <= mpe) {
-        pe <- self$pos_emb[1:seq_len_cap, ]
+        pe <- self$weight[1:seq_len_cap, ]
       } else {
         message("seq_len_cap (", seq_len_cap,
                 ") is bigger than max_position_embeddings (",

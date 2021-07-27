@@ -33,6 +33,7 @@
   }
   state_dict <- torch::load_state_dict(file)
 
+  return(state_dict)
 }
 
 # the torch attention module puts the weight/bias values for the q,k,v tensors
