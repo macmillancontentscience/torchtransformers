@@ -40,22 +40,43 @@ weights_url_map <- c(
 # the huggingface saved weights. Here are some renaming rules that will (almost
 # always?) be applied. We modify the *loaded* weights to match the *package*
 # weights.
+# Also! different models within huggingface have slightly different conventions!
+# The tiny, etc. BERT models use "weight" & "bias" rather than "gamma" & "beta".
 
 variable_names_replacement_rules <- c(
-  "LayerNorm.gamma" = "layer_norm.weight",
-  "LayerNorm.beta" = "layer_norm.bias",
+  ".gamma" = ".weight",
+  ".beta" = ".bias",
+  "LayerNorm" = "layer_norm",
   "attention.output.dense" = "attention.self.out_proj",
   "bert." = ""
 )
 
+
+# May as well store the configuration info for known BERT models here...
+# "intermediate size" is always 4x the embedding size for these models.
+bert_configs <- tibble::tribble(
+  ~model_name, ~embedding_size, ~n_layer, ~n_head, ~max_tokens, ~vocab_size,
+  "bert_tiny_uncased", 128L, 2L, 2L, 512L, 30522L,
+  "bert_mini_uncased", 256L, 4L, 4L, 512L, 30522L,
+  "bert_small_uncased", 512L, 4L, 8L, 512L, 30522L,
+  "bert_medium_uncased", 512L, 8L, 8L, 512L, 30522L,
+  "bert_base_uncased", 768L, 12L, 12L, 512L, 30522L,
+  "bert_base_cased", 768L, 12L, 12L, 512L, 28996L,
+  "bert_large_uncased", 1024L, 24L, 16L, 512L, 30522L
+)
+
+
 usethis::use_data(
   weights_url_map,
   variable_names_replacement_rules,
+  bert_configs,
   internal = TRUE,
   overwrite = TRUE
 )
+
 rm(
   base_url,
   weights_url_map,
-  variable_names_replacement_rules
+  variable_names_replacement_rules,
+  bert_configs
 )
