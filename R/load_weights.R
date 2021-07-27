@@ -1,25 +1,39 @@
-# we need the following...
-# functions to download/cache the weights (use dlr later for this)
-# functions to load the weights into a model.
-#  ultimately we want the UI to be something like this:
-# pt_bert_model <- load_pretrained("bert_base_uncased")
-# ... and either same or different function that can load weights into bert modules
-# that's part of large models.
 
-# ok, specific order of things to do:
-# make internal variable mapping model names (e.g. "bert_base_uncased") to
-# urls of dicts. (done)
-# write function to take in url and output R ... thing ... with names/values.
-# (this will eventually be improved/cached with dlr)
-# write (internal) functions to map weight names...? This might also be something
-# that is saved as package data. Decide when I get here.
-# to do this, first rename module variables to match standards as much as
-# possible. Then any other name mapping that needs to be done should be saved
-# with sysdata.
+# make_and_load_bert ------------------------------------------------------
+
+
+#' Pretrained BERT Model
+#'
+#' Construct a BERT model and load pretrained weights.
+#'
+#' @param model_name Character; which flavor of BERT to use.
+#'
+#' @return The model with pretrained weights loaded.
+#' @export
+make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
+  recognized_models <- bert_configs$model_name
+  if (! model_name %in% recognized_models) {
+    stop("model_name should be one of: ",
+         paste0(recognized_models, collapse = ", "))
+  }
+  params <- bert_configs[bert_configs$model_name == model_name, ]
+
+  model <- model_bert(embedding_size = params$embedding_size,
+                      n_layer = params$n_layer,
+                      n_head = params$n_head,
+                      max_position_embeddings = params$max_tokens,
+                      vocab_size = params$vocab_size)
+  .load_weights(model, model_name)
+  return(model)
+}
+
+
+# utils -------------------------------------------------------------------
 
 
 # this is a placeholder for something using dlr.
-.download_weights <- function(model_name = "bert_base_uncased") {
+# once the cache is set up, this should usually just be fetching from there
+.download_weights <- function(model_name = "bert_tiny_uncased") {
   url <- weights_url_map[model_name]
   file <- tempfile(pattern = model_name, fileext = ".pt")
 
@@ -36,15 +50,23 @@
   return(state_dict)
 }
 
-# the torch attention module puts the weight/bias values for the q,k,v tensors
-# into a single tensor, rather than three separate ones. We do the concatenation
-# so that we can load into our models...
+#' Concatenate Attention Weights
+#'
+#' Concatenate weights to format attention parameters appropriately for loading
+#' into BERT models. The torch attention module puts the weight/bias values for
+#' the q,k,v tensors into a single tensor, rather than three separate ones. We
+#' do the concatenation so that we can load into our models.
+#'
+#' @param state_dict A state_dict of pretrained weights, probably loaded from a
+#'  file.
+#'
+#' @return The state_dict with query, key, value weights concatenated.
+#' @keywords internal
 .concatenate_qkv_weights <- function(state_dict) {
-  # will have to do this for every layer.
-  # thinking... look for (say) "query.weight" and "query.bias" and create
-  # entries with same names, but with "in_proj_weight" and "in_proj_bias"...
-  # Then give these values resulting from appropriate concatenation...
   w_names <- names(state_dict)
+  # Find parameters with "query" in the name. *Assume* there will be
+  # corresponding "key" and "value" parameters. *Construct* corresponding
+  # "in_proj" variable.
   trigger_pattern <- "query\\."
   query_names <- w_names[stringr::str_detect(string = w_names,
                                              pattern = trigger_pattern)]
@@ -59,8 +81,6 @@
     ipn <- stringr::str_replace(string = qn,
                                 pattern = trigger_pattern,
                                 replacement = "in_proj_")
-    # now do the actual concatenation. If stuff doesn't work out, try
-    # transposing these. If it does, delete this comment. :)
     combined <- torch::torch_cat(list(state_dict[[qn]],
                                       state_dict[[kn]],
                                       state_dict[[vn]]))
@@ -72,6 +92,18 @@
   return(state_dict)
 }
 
+#' Clean up Parameter Names
+#'
+#' There are some hard-to-avoid differences between the variable names in BERT
+#' models constructed using this package and the standard variable names used in
+#' the Huggingface saved weights. This function changes the names from the
+#' Huggingface saves to match package usage.
+#'
+#' @param state_dict A state_dict of pretrained weights, probably loaded from a
+#'  file.
+#'
+#' @return The state_dict with the names normalized.
+#' @keywords internal
 .rename_state_dict_variables <- function(state_dict) {
   rep_rules <- variable_names_replacement_rules
   w_names <- names(state_dict)
@@ -81,7 +113,23 @@
   return(state_dict)
 }
 
-load_weights <- function(model, model_name = "bert_base_uncased") {
+
+#' Load Pretrained Weights into a BERT Model
+#'
+#' There are some hard-to-avoid differences between the variable names in BERT
+#' models constructed using this package and the standard variable names used in
+#' the Huggingface saved weights. This function changes the names from the
+#' Huggingface saves to match package usage.
+#'
+#' @param model a BERT-type model, constructed using `model_bert`.
+#' @param model_name Character; which flavor of BERT to use. Must be compatible
+#'   with `model`!
+#'
+#' @return The number of model parameters updated. (This is for an error check;
+#' the function is called for side effects.)
+#' @keywords internal
+.load_weights <- function(model, model_name = "bert_base_uncased") {
+  # once the cache is set up, this should usually just be fetching from there
   sd <- .download_weights(model_name = model_name)
   sd <- .concatenate_qkv_weights(sd)
   sd <- .rename_state_dict_variables(sd)
@@ -98,4 +146,6 @@ load_weights <- function(model, model_name = "bert_base_uncased") {
   model$load_state_dict(my_sd)
   return(length(names_in_common)) #maybe? This function is for side effects.
 }
+
+
 
