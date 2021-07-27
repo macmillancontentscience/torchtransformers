@@ -47,7 +47,7 @@ attention_bert <- torch::nn_module(
                                                     dropout = attention_dropout)
     # The built-in attention module already does a projection on the output, so
     # we just want to add residual and normalize.
-    self$layernorm <-  torch::nn_layer_norm(
+    self$layer_norm <-  torch::nn_layer_norm(
       normalized_shape = embedding_size,
       eps = 1e-12 # cf BERT
     )
@@ -59,7 +59,7 @@ attention_bert <- torch::nn_module(
                              key_padding_mask = mask,
                              avg_weights = FALSE)
     att_wts <- output[[2]]
-    output <- self$layernorm(output[[1]] + input)
+    output <- self$layer_norm(output[[1]] + input)
     return(list("embeddings" = output,
                 "weights" = att_wts))
   }
