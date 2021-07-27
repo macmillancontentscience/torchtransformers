@@ -71,3 +71,31 @@
   }
   return(state_dict)
 }
+
+.rename_state_dict_variables <- function(state_dict) {
+  rep_rules <- variable_names_replacement_rules
+  w_names <- names(state_dict)
+  w_names <- stringr::str_replace_all(string = w_names,
+                                      pattern = stringr::fixed(rep_rules))
+  names(state_dict) <- w_names
+  return(state_dict)
+}
+
+load_weights <- function(model, model_name = "bert_base_uncased") {
+  sd <- .download_weights(model_name = model_name)
+  sd <- .concatenate_qkv_weights(sd)
+  sd <- .rename_state_dict_variables(sd)
+
+  my_sd <- model$state_dict()
+  my_weight_names <- names(my_sd)
+  saved_weight_names <- names(sd)
+  names_in_common <- intersect(my_weight_names, saved_weight_names)
+  if (length(names_in_common) > 0) {
+    my_sd[names_in_common] <- sd[names_in_common]
+  } else {
+    warning("No matching weight names found.")
+  }
+  model$load_state_dict(my_sd)
+  return(length(names_in_common)) #maybe? This function is for side effects.
+}
+
