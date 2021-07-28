@@ -1,4 +1,8 @@
 test_that("pre-trained bert works", {
+  testthat::expect_error(make_and_load_bert("typo_in_model_name"),
+                         "should be one of")
+
+
   tiny_bert_model <- make_and_load_bert("bert_tiny_uncased")
 
   n_inputs <- 1

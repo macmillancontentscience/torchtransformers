@@ -59,7 +59,7 @@ t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
                 nrow = mpe, ncol = n_inputs)
 ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
 
-model <- bert_embeddings(embedding_size = emb_size,
+model <- embeddings_bert(embedding_size = emb_size,
                          max_position_embeddings = mpe,
                          vocab_size = vs)
 model(torch::torch_tensor(t_ids),

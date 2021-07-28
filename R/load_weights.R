@@ -147,7 +147,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
   if (length(names_in_common) > 0) {
     my_sd[names_in_common] <- sd[names_in_common]
   } else {
-    warning("No matching weight names found.")
+    warning("No matching weight names found.") # nocov
   }
   model$load_state_dict(my_sd)
   return(length(names_in_common)) #maybe? This function is for side effects.
