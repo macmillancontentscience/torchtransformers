@@ -143,9 +143,6 @@ embeddings_bert <- torch::nn_module(
   },
 
   forward = function(token_ids, token_type_ids) {
-    # if we're using seq_len_cap, we need to apply it consistently here.
-    # The dimensions need to be compatible, so we should check/enforce this here.
-
     input_length <- token_ids$shape[[1]]        # number of tokens in input...
     input_length2 <- token_type_ids$shape[[1]]  # ...should match!
     input_length3 <- self$position_embeddings$weight$shape[[1]] # at most.
