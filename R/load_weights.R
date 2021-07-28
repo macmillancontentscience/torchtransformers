@@ -31,11 +31,14 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 # utils -------------------------------------------------------------------
 
 
-# this is a placeholder for something using dlr.
-# once the cache is set up, this should usually just be fetching from there
+# this is a placeholder for something more sophisticated using dlr.
+# once the cache is set up, we should usually just be fetching from there
 .download_weights <- function(model_name = "bert_tiny_uncased") {
   url <- weights_url_map[model_name]
   file <- tempfile(pattern = model_name, fileext = ".pt")
+
+  # clean up temp file when we're done.
+  on.exit(unlink(file))
 
   status <- utils::download.file(
     url = url,
@@ -46,7 +49,12 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
     stop("Checkpoint download failed.")  # nocovr
   }
   state_dict <- torch::load_state_dict(file)
-
+  # I think we always want to do the concatenation and name fixing, so just do
+  # that here.
+  state_dict <- .concatenate_qkv_weights(state_dict)
+  state_dict <- .rename_state_dict_variables(state_dict)
+  # not sure if {dlr} supports this case yet, but it makes sense to save the
+  # cached file at this point, after the name clean-up.
   return(state_dict)
 }
 
@@ -125,14 +133,12 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 #' @param model_name Character; which flavor of BERT to use. Must be compatible
 #'   with `model`!
 #'
-#' @return The number of model parameters updated. (This is for an error check;
-#' the function is called for side effects.)
+#' @return The number of model parameters updated. (This is to enable error
+#'   checks; the function is called for side effects.)
 #' @keywords internal
 .load_weights <- function(model, model_name = "bert_base_uncased") {
   # once the cache is set up, this should usually just be fetching from there
   sd <- .download_weights(model_name = model_name)
-  sd <- .concatenate_qkv_weights(sd)
-  sd <- .rename_state_dict_variables(sd)
 
   my_sd <- model$state_dict()
   my_weight_names <- names(my_sd)

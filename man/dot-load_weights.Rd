@@ -13,8 +13,8 @@
 with `model`!}
 }
 \value{
-The number of model parameters updated. (This is for an error check;
-the function is called for side effects.)
+The number of model parameters updated. (This is to enable error
+  checks; the function is called for side effects.)
 }
 \description{
 There are some hard-to-avoid differences between the variable names in BERT
