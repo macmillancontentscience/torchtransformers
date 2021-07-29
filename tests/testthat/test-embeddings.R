@@ -1,3 +1,17 @@
+# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 test_that("position embedding module works", {
   emb_size <- 3L
   mpe <- 2L
@@ -14,7 +28,7 @@ test_that("position embedding module works", {
   wts <- test_model$state_dict()
 
   # set weights
-  wts$pos_emb <- torch::torch_tensor(t(dm))
+  wts$weight <- torch::torch_tensor(t(dm))
 
   test_model$load_state_dict(wts)
   test_model$eval()
@@ -70,7 +84,7 @@ test_that("embeddings_bert module works", {
   # set weights
   wts$word_embeddings.weight <- torch::torch_tensor(t(wew))
   wts$token_type_embeddings.weight <- torch::torch_tensor(t(ttew))
-  wts$position_embeddings.pos_emb <- torch::torch_tensor(t(pepe))
+  wts$position_embeddings.weight <- torch::torch_tensor(t(pepe))
   wts$layer_norm.weight <- torch::torch_tensor(lnw)
   wts$layer_norm.bias <- torch::torch_tensor(lnb)
 

@@ -1,4 +1,16 @@
-
+# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # position embeddings -----------------------------------------------------
 
@@ -42,19 +54,20 @@ position_embedding <- torch::nn_module(
                                         embedding_size)
     torch::nn_init_trunc_normal_(self$pos_emb0, std = std,
                                  a = -2*std, b = 2*std)
-    self$pos_emb <- torch::nn_parameter(self$pos_emb0)
+    # model variable name!
+    self$weight <- torch::nn_parameter(self$pos_emb0)
   },
 
   forward = function(seq_len_cap = NULL) {
     # When the embedding layer is actually called, we can restrict number of
     # positions to be smaller than the initialized size. (e.g. if you know you
     # only need length-20 sequences, you can save a lot of time.)
-    pe <- self$pos_emb
+    pe <- self$weight
 
     if (!is.null(seq_len_cap)) {
-      mpe <- self$pos_emb$shape[[1]]
+      mpe <- self$weight$shape[[1]]
       if (seq_len_cap <= mpe) {
-        pe <- self$pos_emb[1:seq_len_cap, ]
+        pe <- self$weight[1:seq_len_cap, ]
       } else {
         message("seq_len_cap (", seq_len_cap,
                 ") is bigger than max_position_embeddings (",
@@ -105,7 +118,7 @@ position_embedding <- torch::nn_module(
 #'                 nrow = mpe, ncol = n_inputs)
 #' ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
 #'
-#' model <- bert_embeddings(embedding_size = emb_size,
+#' model <- embeddings_bert(embedding_size = emb_size,
 #'                          max_position_embeddings = mpe,
 #'                          vocab_size = vs)
 #' model(torch::torch_tensor(t_ids),
@@ -142,12 +155,9 @@ embeddings_bert <- torch::nn_module(
   },
 
   forward = function(token_ids, token_type_ids) {
-    # if we're using seq_len_cap, we need to apply it consistently here.
-    # The dimensions need to be compatible, so we should check/enforce this here.
-
     input_length <- token_ids$shape[[1]]        # number of tokens in input...
     input_length2 <- token_type_ids$shape[[1]]  # ...should match!
-    input_length3 <- self$position_embeddings$pos_emb$shape[[1]] # at most.
+    input_length3 <- self$position_embeddings$weight$shape[[1]] # at most.
 
     if (input_length != input_length2) {
       stop("Shape of token_ids should match shape of token_type_ids.")

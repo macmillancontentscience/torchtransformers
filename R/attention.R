@@ -1,3 +1,17 @@
+# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 #' BERT-Style Attention
 #'
 #' Takes in an input tensor (e.g. sequence of token embeddings), applies an
@@ -42,12 +56,14 @@ attention_bert <- torch::nn_module(
     if (embedding_size %% n_head != 0) {
       stop("embedding_size should be a multiple of n_head.")
     }
-    self$attention <- torch::nn_multihead_attention(embed_dim = embedding_size,
-                                                    num_heads = n_head,
-                                                    dropout = attention_dropout)
+    # model variable name! ("self" attention)
+    self$self <- torch::nn_multihead_attention(embed_dim = embedding_size,
+                                               num_heads = n_head,
+                                               dropout = attention_dropout)
     # The built-in attention module already does a projection on the output, so
     # we just want to add residual and normalize.
-    self$layernorm <-  torch::nn_layer_norm(
+    # model variable name!
+    self$output.layer_norm <-  torch::nn_layer_norm(
       normalized_shape = embedding_size,
       eps = 1e-12 # cf BERT
     )
@@ -55,11 +71,11 @@ attention_bert <- torch::nn_module(
 
   forward = function(input, mask = NULL) {
     # pass along the mask here. TRUE means ignore..
-    output <- self$attention(input, input, input,
-                             key_padding_mask = mask,
-                             avg_weights = FALSE)
+    output <- self$self(input, input, input,
+                        key_padding_mask = mask,
+                        avg_weights = FALSE)
     att_wts <- output[[2]]
-    output <- self$layernorm(output[[1]] + input)
+    output <- self$output.layer_norm(output[[1]] + input)
     return(list("embeddings" = output,
                 "weights" = att_wts))
   }

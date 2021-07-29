@@ -2,6 +2,7 @@
 
 export(attention_bert)
 export(embeddings_bert)
+export(make_and_load_bert)
 export(model_bert)
 export(position_embedding)
 export(proj_add_norm)
