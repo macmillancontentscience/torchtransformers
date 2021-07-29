@@ -11,6 +11,7 @@
 #' @return The model with pretrained weights loaded.
 #' @export
 make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
+  # https://github.com/macmillancontentscience/torchtransformers/issues/9
   recognized_models <- bert_configs$model_name
   if (! model_name %in% recognized_models) {
     stop("model_name should be one of: ",
@@ -124,10 +125,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 
 #' Load Pretrained Weights into a BERT Model
 #'
-#' There are some hard-to-avoid differences between the variable names in BERT
-#' models constructed using this package and the standard variable names used in
-#' the Huggingface saved weights. This function changes the names from the
-#' Huggingface saves to match package usage.
+#' Loads specified pretrained weights into the given BERT model.
 #'
 #' @param model a BERT-type model, constructed using `model_bert`.
 #' @param model_name Character; which flavor of BERT to use. Must be compatible

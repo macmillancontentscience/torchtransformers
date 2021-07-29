@@ -17,9 +17,6 @@ The number of model parameters updated. (This is to enable error
   checks; the function is called for side effects.)
 }
 \description{
-There are some hard-to-avoid differences between the variable names in BERT
-models constructed using this package and the standard variable names used in
-the Huggingface saved weights. This function changes the names from the
-Huggingface saves to match package usage.
+Loads specified pretrained weights into the given BERT model.
 }
 \keyword{internal}
