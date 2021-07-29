@@ -150,8 +150,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
     warning("No matching weight names found.") # nocov
   }
   model$load_state_dict(my_sd)
-  return(length(names_in_common)) #maybe? This function is for side effects.
+  return(length(names_in_common)) # This function is for side effects.
 }
-
 
 
