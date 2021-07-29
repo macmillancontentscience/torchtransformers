@@ -47,6 +47,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 
 # this is a placeholder for something more sophisticated using dlr.
 # once the cache is set up, we should usually just be fetching from there
+# https://github.com/macmillancontentscience/torchtransformers/issues/10
 .download_weights <- function(model_name = "bert_tiny_uncased") {
   url <- weights_url_map[model_name]
   file <- tempfile(pattern = model_name, fileext = ".pt")
