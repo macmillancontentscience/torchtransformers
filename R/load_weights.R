@@ -26,17 +26,21 @@
 make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
   # https://github.com/macmillancontentscience/torchtransformers/issues/9
   recognized_models <- bert_configs$model_name
-  if (! model_name %in% recognized_models) {
-    stop("model_name should be one of: ",
-         paste0(recognized_models, collapse = ", "))
+  if (!model_name %in% recognized_models) {
+    stop(
+      "model_name should be one of: ",
+      paste0(recognized_models, collapse = ", ")
+    )
   }
   params <- bert_configs[bert_configs$model_name == model_name, ]
 
-  model <- model_bert(embedding_size = params$embedding_size,
-                      n_layer = params$n_layer,
-                      n_head = params$n_head,
-                      max_position_embeddings = params$max_tokens,
-                      vocab_size = params$vocab_size)
+  model <- model_bert(
+    embedding_size = params$embedding_size,
+    n_layer = params$n_layer,
+    n_head = params$n_head,
+    max_position_embeddings = params$max_tokens,
+    vocab_size = params$vocab_size
+  )
   .load_weights(model, model_name)
   return(model)
 }
@@ -111,22 +115,32 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
   # corresponding "key" and "value" parameters. *Construct* corresponding
   # "in_proj" variable.
   trigger_pattern <- "query\\."
-  query_names <- w_names[stringr::str_detect(string = w_names,
-                                             pattern = trigger_pattern)]
+  query_names <- w_names[stringr::str_detect(
+    string = w_names,
+    pattern = trigger_pattern
+  )]
 
   for (qn in query_names) {
-    kn <- stringr::str_replace(string = qn,
-                               pattern = trigger_pattern,
-                               replacement = "key.")
-    vn <- stringr::str_replace(string = qn,
-                               pattern = trigger_pattern,
-                               replacement = "value.")
-    ipn <- stringr::str_replace(string = qn,
-                                pattern = trigger_pattern,
-                                replacement = "in_proj_")
-    combined <- torch::torch_cat(list(state_dict[[qn]],
-                                      state_dict[[kn]],
-                                      state_dict[[vn]]))
+    kn <- stringr::str_replace(
+      string = qn,
+      pattern = trigger_pattern,
+      replacement = "key."
+    )
+    vn <- stringr::str_replace(
+      string = qn,
+      pattern = trigger_pattern,
+      replacement = "value."
+    )
+    ipn <- stringr::str_replace(
+      string = qn,
+      pattern = trigger_pattern,
+      replacement = "in_proj_"
+    )
+    combined <- torch::torch_cat(list(
+      state_dict[[qn]],
+      state_dict[[kn]],
+      state_dict[[vn]]
+    ))
     state_dict[[ipn]] <- combined
     state_dict[[qn]] <- NULL
     state_dict[[kn]] <- NULL
@@ -150,8 +164,10 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 .rename_state_dict_variables <- function(state_dict) {
   rep_rules <- variable_names_replacement_rules
   w_names <- names(state_dict)
-  w_names <- stringr::str_replace_all(string = w_names,
-                                      pattern = stringr::fixed(rep_rules))
+  w_names <- stringr::str_replace_all(
+    string = w_names,
+    pattern = stringr::fixed(rep_rules)
+  )
   names(state_dict) <- w_names
   return(state_dict)
 }
@@ -187,5 +203,3 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
   model$load_state_dict(my_sd)
   return(length(names_in_common)) # This function is for side effects.
 }
-
-

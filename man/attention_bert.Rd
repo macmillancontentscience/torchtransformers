@@ -41,13 +41,19 @@ seq_len <- 3L
 n_head <- 2L
 batch_size <- 2L
 
-model <- attention_bert(embedding_size = emb_size,
-                        n_head = n_head)
+model <- attention_bert(
+  embedding_size = emb_size,
+  n_head = n_head
+)
 # get random values for input
-input <- array(sample(-10:10,
-                      size = batch_size * seq_len * emb_size,
-                      replace = TRUE) / 10,
-               dim = c(seq_len, batch_size, emb_size))
+input <- array(
+  sample(
+    -10:10,
+    size = batch_size * seq_len * emb_size,
+    replace = TRUE
+  ) / 10,
+  dim = c(seq_len, batch_size, emb_size)
+)
 input <- torch::torch_tensor(input)
 model(input)
 }

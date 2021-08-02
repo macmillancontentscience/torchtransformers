@@ -41,7 +41,6 @@
 #' input <- torch::torch_randn(in_size)
 #' residual <- torch::torch_randn(out_size)
 #' model(input, residual)
-#'
 #' @export
 proj_add_norm <- torch::nn_module(
   "proj_add_norm",
@@ -53,7 +52,6 @@ proj_add_norm <- torch::nn_module(
       eps = 1e-12 # cf BERT
     )
   },
-
   forward = function(input, residual) {
     output <- self$dense(input)
     output <- self$dropout(output)
@@ -61,4 +59,3 @@ proj_add_norm <- torch::nn_module(
     return(output)
   }
 )
-

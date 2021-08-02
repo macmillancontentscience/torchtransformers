@@ -56,12 +56,17 @@ vs <- 7L
 n_inputs <- 2L
 # get random "ids" for input
 t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
-                nrow = mpe, ncol = n_inputs)
+  nrow = mpe, ncol = n_inputs
+)
 ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
 
-model <- embeddings_bert(embedding_size = emb_size,
-                         max_position_embeddings = mpe,
-                         vocab_size = vs)
-model(torch::torch_tensor(t_ids),
-      torch::torch_tensor(ttype_ids))
+model <- embeddings_bert(
+  embedding_size = emb_size,
+  max_position_embeddings = mpe,
+  vocab_size = vs
+)
+model(
+  torch::torch_tensor(t_ids),
+  torch::torch_tensor(ttype_ids)
+)
 }

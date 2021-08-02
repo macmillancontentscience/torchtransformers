@@ -4,13 +4,15 @@
 \alias{.load_weights}
 \title{Load Pretrained Weights into a BERT Model}
 \usage{
-.load_weights(model, model_name = "bert_base_uncased")
+.load_weights(model, model_name = "bert_base_uncased", redownload = FALSE)
 }
 \arguments{
-\item{model}{a BERT-type model, constructed using `model_bert`.}
+\item{model}{A BERT-type model, constructed using `model_bert`.}
 
 \item{model_name}{Character; which flavor of BERT to use. Must be compatible
 with `model`!}
+
+\item{redownload}{}
 }
 \value{
 The number of model parameters updated. (This is to enable error

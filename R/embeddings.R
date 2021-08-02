@@ -39,8 +39,10 @@
 #' @examples
 #' emb_size <- 3L
 #' mpe <- 2L
-#' model <- position_embedding(embedding_size = emb_size,
-#'                             max_position_embeddings = mpe)
+#' model <- position_embedding(
+#'   embedding_size = emb_size,
+#'   max_position_embeddings = mpe
+#' )
 #' model(seq_len_cap = 1)
 #' model()
 #' @export
@@ -50,14 +52,17 @@ position_embedding <- torch::nn_module(
     # Maybe eventually promote this to proper param.
     std <- 0.02
     # todo on GPU: check that device is set properly!
-    self$pos_emb0 <- torch::torch_empty(max_position_embeddings,
-                                        embedding_size)
-    torch::nn_init_trunc_normal_(self$pos_emb0, std = std,
-                                 a = -2*std, b = 2*std)
+    self$pos_emb0 <- torch::torch_empty(
+      max_position_embeddings,
+      embedding_size
+    )
+    torch::nn_init_trunc_normal_(self$pos_emb0,
+      std = std,
+      a = -2 * std, b = 2 * std
+    )
     # model variable name!
     self$weight <- torch::nn_parameter(self$pos_emb0)
   },
-
   forward = function(seq_len_cap = NULL) {
     # When the embedding layer is actually called, we can restrict number of
     # positions to be smaller than the initialized size. (e.g. if you know you
@@ -69,9 +74,11 @@ position_embedding <- torch::nn_module(
       if (seq_len_cap <= mpe) {
         pe <- self$weight[1:seq_len_cap, ]
       } else {
-        message("seq_len_cap (", seq_len_cap,
-                ") is bigger than max_position_embeddings (",
-                max_position_embeddings, "), and will be ignored.")
+        message(
+          "seq_len_cap (", seq_len_cap,
+          ") is bigger than max_position_embeddings (",
+          max_position_embeddings, "), and will be ignored."
+        )
       }
     }
 
@@ -115,14 +122,19 @@ position_embedding <- torch::nn_module(
 #' n_inputs <- 2L
 #' # get random "ids" for input
 #' t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
-#'                 nrow = mpe, ncol = n_inputs)
+#'   nrow = mpe, ncol = n_inputs
+#' )
 #' ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
 #'
-#' model <- embeddings_bert(embedding_size = emb_size,
-#'                          max_position_embeddings = mpe,
-#'                          vocab_size = vs)
-#' model(torch::torch_tensor(t_ids),
-#'       torch::torch_tensor(ttype_ids))
+#' model <- embeddings_bert(
+#'   embedding_size = emb_size,
+#'   max_position_embeddings = mpe,
+#'   vocab_size = vs
+#' )
+#' model(
+#'   torch::torch_tensor(t_ids),
+#'   torch::torch_tensor(ttype_ids)
+#' )
 #' @export
 embeddings_bert <- torch::nn_module(
   "embeddings_bert",
@@ -153,10 +165,9 @@ embeddings_bert <- torch::nn_module(
 
     self$dropout <- torch::nn_dropout(p = hidden_dropout)
   },
-
   forward = function(token_ids, token_type_ids) {
-    input_length <- token_ids$shape[[1]]        # number of tokens in input...
-    input_length2 <- token_type_ids$shape[[1]]  # ...should match!
+    input_length <- token_ids$shape[[1]] # number of tokens in input...
+    input_length2 <- token_type_ids$shape[[1]] # ...should match!
     input_length3 <- self$position_embeddings$weight$shape[[1]] # at most.
 
     if (input_length != input_length2) {
@@ -181,4 +192,3 @@ embeddings_bert <- torch::nn_module(
     return(output)
   }
 )
-

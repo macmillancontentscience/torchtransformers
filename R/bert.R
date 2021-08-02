@@ -57,22 +57,33 @@
 #' n_head <- 4L
 #' n_layer <- 6L
 #' vocab_size <- 30522L
-#' model <- model_bert(embedding_size = emb_size,
-#'               n_layer = n_layer,
-#'               n_head = n_head,
-#'               max_position_embeddings = mpe,
-#'               vocab_size = vocab_size)
+#' model <- model_bert(
+#'   embedding_size = emb_size,
+#'   n_layer = n_layer,
+#'   n_head = n_head,
+#'   max_position_embeddings = mpe,
+#'   vocab_size = vocab_size
+#' )
 #'
 #' n_inputs <- 2
 #' n_token_max <- 128L
 #' # get random "ids" for input
-#' t_ids <- matrix(sample(2:vocab_size, size = n_token_max * n_inputs,
-#'                       replace = TRUE),
-#'                nrow = n_token_max, ncol = n_inputs)
-#' ttype_ids <- matrix(rep(1L, n_token_max * n_inputs),
-#'                nrow = n_token_max, ncol = n_inputs)
-#' model(torch::torch_tensor(t_ids),
-#'       torch::torch_tensor(ttype_ids))
+#' t_ids <- matrix(
+#'   sample(
+#'     2:vocab_size,
+#'     size = n_token_max * n_inputs,
+#'     replace = TRUE
+#'   ),
+#'   nrow = n_token_max, ncol = n_inputs
+#' )
+#' ttype_ids <- matrix(
+#'   rep(1L, n_token_max * n_inputs),
+#'   nrow = n_token_max, ncol = n_inputs
+#' )
+#' model(
+#'   torch::torch_tensor(t_ids),
+#'   torch::torch_tensor(ttype_ids)
+#' )
 #' @export
 model_bert <- torch::nn_module(
   "BERT",
@@ -90,7 +101,8 @@ model_bert <- torch::nn_module(
       max_position_embeddings = max_position_embeddings,
       vocab_size = vocab_size,
       token_type_vocab_size = token_type_vocab_size,
-      hidden_dropout = hidden_dropout)
+      hidden_dropout = hidden_dropout
+    )
 
     self$encoder <- transformer_encoder_bert(
       embedding_size = embedding_size,
@@ -98,7 +110,8 @@ model_bert <- torch::nn_module(
       n_layer = n_layer,
       n_head = n_head,
       hidden_dropout = hidden_dropout,
-      attention_dropout = attention_dropout)
+      attention_dropout = attention_dropout
+    )
   },
   forward = function(token_ids, token_type_ids) {
     mask <- torch::torch_transpose(token_ids == 1, 1, 2)
@@ -106,9 +119,10 @@ model_bert <- torch::nn_module(
     emb_out <- self$embeddings(token_ids, token_type_ids)
     output <- self$encoder(emb_out, mask)
 
-    return(list("initial_embeddings" = emb_out,
-                "output_embeddings" = output$embeddings,
-                "attention_weights" = output$weights))
+    return(list(
+      "initial_embeddings" = emb_out,
+      "output_embeddings" = output$embeddings,
+      "attention_weights" = output$weights
+    ))
   }
 )
-

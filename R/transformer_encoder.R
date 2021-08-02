@@ -41,13 +41,19 @@
 #' n_head <- 2L
 #' batch_size <- 2L
 #'
-#' model <- transformer_encoder_single_bert(embedding_size = emb_size,
-#'                                     n_head = n_head)
+#' model <- transformer_encoder_single_bert(
+#'   embedding_size = emb_size,
+#'   n_head = n_head
+#' )
 #' # get random values for input
-#' input <- array(sample(-10:10,
-#'                       size = batch_size * seq_len * emb_size,
-#'                       replace = TRUE) / 10,
-#'                dim = c(seq_len, batch_size, emb_size))
+#' input <- array(
+#'   sample(
+#'     -10:10,
+#'     size = batch_size * seq_len * emb_size,
+#'     replace = TRUE
+#'   ) / 10,
+#'   dim = c(seq_len, batch_size, emb_size)
+#' )
 #' input <- torch::torch_tensor(input)
 #' model(input)
 #' @export
@@ -59,20 +65,25 @@ transformer_encoder_single_bert <- torch::nn_module(
                         hidden_dropout = 0.1,
                         attention_dropout = 0.1) {
     # model variable name!
-    self$attention <- attention_bert(embedding_size = embedding_size,
-                                     n_head = n_head,
-                                     attention_dropout = attention_dropout)
+    self$attention <- attention_bert(
+      embedding_size = embedding_size,
+      n_head = n_head,
+      attention_dropout = attention_dropout
+    )
     # https://github.com/macmillancontentscience/torchtransformers/issues/4
     # model variable name!
-    self$intermediate.dense <- torch::nn_linear(embedding_size,
-                                                intermediate_size)
+    self$intermediate.dense <- torch::nn_linear(
+      embedding_size,
+      intermediate_size
+    )
 
     # model variable name!
-    self$output <- proj_add_norm(input_size = intermediate_size,
-                                 output_size = embedding_size,
-                                 hidden_dropout = hidden_dropout)
+    self$output <- proj_add_norm(
+      input_size = intermediate_size,
+      output_size = embedding_size,
+      hidden_dropout = hidden_dropout
+    )
   },
-
   forward = function(input, mask = NULL) {
     attention_output_and_probs <- self$attention(input, mask)
     attention_output <- attention_output_and_probs$embeddings
@@ -81,8 +92,10 @@ transformer_encoder_single_bert <- torch::nn_module(
     intermediate_output <- self$intermediate.dense(attention_output)
     intermediate_output <- torch::nnf_gelu(intermediate_output)
 
-    layer_output <- self$output(input = intermediate_output,
-                                residual = attention_output)
+    layer_output <- self$output(
+      input = intermediate_output,
+      residual = attention_output
+    )
 
     return(list("embeddings" = layer_output, "weights" = attention_probs))
   }
@@ -92,13 +105,13 @@ transformer_encoder_single_bert <- torch::nn_module(
 # transformer_encoder -----------------------------------------------------
 
 
-#'Transformer Stack
+#' Transformer Stack
 #'
-#'Build a BERT-style multi-layer attention-based transformer.
+#' Build a BERT-style multi-layer attention-based transformer.
 #'
 #' @inheritParams model_bert
 #'
-#'@section Shape:
+#' @section Shape:
 #'
 #'  Inputs:
 #'
@@ -123,14 +136,20 @@ transformer_encoder_single_bert <- torch::nn_module(
 #' n_layer <- 5L
 #' batch_size <- 2L
 #'
-#' model <- transformer_encoder_bert(embedding_size = emb_size,
-#'                              n_head = n_head,
-#'                              n_layer = n_layer)
+#' model <- transformer_encoder_bert(
+#'   embedding_size = emb_size,
+#'   n_head = n_head,
+#'   n_layer = n_layer
+#' )
 #' # get random values for input
-#' input <- array(sample(-10:10,
-#'                       size = batch_size * seq_len * emb_size,
-#'                       replace = TRUE) / 10,
-#'                dim = c(seq_len, batch_size, emb_size))
+#' input <- array(
+#'   sample(
+#'     -10:10,
+#'     size = batch_size * seq_len * emb_size,
+#'     replace = TRUE
+#'   ) / 10,
+#'   dim = c(seq_len, batch_size, emb_size)
+#' )
 #' input <- torch::torch_tensor(input)
 #' model(input)
 #' @export
@@ -154,11 +173,11 @@ transformer_encoder_bert <- torch::nn_module(
         intermediate_size = intermediate_size,
         n_head = n_head,
         hidden_dropout = hidden_dropout,
-        attention_dropout = attention_dropout)
+        attention_dropout = attention_dropout
+      )
       self$layer$append(encoder_layer)
     }
   },
-
   forward = function(input, mask = NULL) {
     layer_output <- input # output from the *previous* layer
     layer_output_all <- list()
@@ -175,8 +194,10 @@ transformer_encoder_bert <- torch::nn_module(
     }
 
     # It's probably best to just always return all the layers.
-    final_output <- list("embeddings" = layer_output_all,
-                         "weights" = attention_probs_all)
+    final_output <- list(
+      "embeddings" = layer_output_all,
+      "weights" = attention_probs_all
+    )
 
     return(final_output)
   }
