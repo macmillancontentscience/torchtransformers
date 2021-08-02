@@ -24,8 +24,10 @@ Depends: R (>= 3.5.1)
 License: Apache License (>= 2)
 RoxygenNote: 7.1.1
 Imports:
+    dlr,
     stringr (>= 1.4.0),
     torch (>= 0.3.0.9)
 Suggests: 
+    tibble,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

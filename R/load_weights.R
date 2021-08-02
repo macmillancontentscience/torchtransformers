@@ -45,32 +45,52 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 # utils -------------------------------------------------------------------
 
 
-# this is a placeholder for something more sophisticated using dlr.
-# once the cache is set up, we should usually just be fetching from there
-# https://github.com/macmillancontentscience/torchtransformers/issues/10
-.download_weights <- function(model_name = "bert_tiny_uncased") {
+#' Download and Cache Weights
+#'
+#' Download weights for this model to the torchtransformers cache, or load them
+#' if they're already downloaded.
+#'
+#' @inheritParams make_and_load_bert
+#' @param redownload Logical; should the weights be downloaded fresh even if
+#'   they're cached? This is not currently exposed to the end user, and exists
+#'   mainly so we can test more easily.
+#'
+#' @return The parsed weights as a named list.
+#' @keywords internal
+.download_weights <- function(model_name = "bert_tiny_uncased",
+                              redownload = FALSE) {
   url <- weights_url_map[model_name]
-  file <- tempfile(pattern = model_name, fileext = ".pt")
+  target_file <- paste0(model_name, "_weights", ".rds")
 
-  # clean up temp file when we're done.
-  on.exit(unlink(file))
-
-  status <- utils::download.file(
+  cached_file_path <- dlr::download_cache(
     url = url,
-    destfile = file,
-    method = "libcurl"
+    appname = "torchtransformers",
+    filename = target_file,
+    process_f = .process_downloaded_weights,
+    redownload = redownload
   )
-  if (status != 0) {
-    stop("Checkpoint download failed.")  # nocovr
-  }
-  state_dict <- torch::load_state_dict(file)
+
+  return(readRDS(cached_file_path))
+}
+
+#' Process and Save Weights
+#'
+#' @param temp_file The path to the raw downloaded weights.
+#' @param target_file The path to which the processed weights should be written.
+#'
+#' @return The path to the saved weights, invisibly.
+#' @keywords internal
+.process_downloaded_weights <- function(temp_file, target_file) {
+  state_dict <- torch::load_state_dict(temp_file)
   # I think we always want to do the concatenation and name fixing, so just do
   # that here.
   state_dict <- .concatenate_qkv_weights(state_dict)
   state_dict <- .rename_state_dict_variables(state_dict)
-  # not sure if {dlr} supports this case yet, but it makes sense to save the
-  # cached file at this point, after the name clean-up.
-  return(state_dict)
+
+  saveRDS(state_dict, target_file)
+  return(
+    invisible(target_file)
+  )
 }
 
 #' Concatenate Attention Weights
@@ -141,16 +161,19 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 #'
 #' Loads specified pretrained weights into the given BERT model.
 #'
-#' @param model a BERT-type model, constructed using `model_bert`.
+#' @param model A BERT-type model, constructed using `model_bert`.
 #' @param model_name Character; which flavor of BERT to use. Must be compatible
 #'   with `model`!
+#' @param redownload
 #'
 #' @return The number of model parameters updated. (This is to enable error
 #'   checks; the function is called for side effects.)
 #' @keywords internal
-.load_weights <- function(model, model_name = "bert_base_uncased") {
+.load_weights <- function(model,
+                          model_name = "bert_base_uncased",
+                          redownload = FALSE) {
   # once the cache is set up, this should usually just be fetching from there
-  sd <- .download_weights(model_name = model_name)
+  sd <- .download_weights(model_name = model_name, redownload = redownload)
 
   my_sd <- model$state_dict()
   my_weight_names <- names(my_sd)
