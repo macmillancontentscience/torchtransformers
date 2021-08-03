@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9005
+Version: 0.0.0.9006
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -27,6 +27,8 @@ Imports:
     dlr,
     stringr (>= 1.4.0),
     torch (>= 0.3.0.9)
+Remotes:
+    macmillanhighered/dlr
 Suggests: 
     tibble,
     testthat (>= 3.0.0)
