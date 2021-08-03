@@ -74,10 +74,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
     redownload = redownload
   )
 
-  state_dict <- lapply(
-    readRDS(cached_file_path),
-    torch::torch_tensor
-  )
+  state_dict <- torch::torch_load(cached_file_path)
 
   return(state_dict)
 }
@@ -96,12 +93,8 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
   state_dict <- .concatenate_qkv_weights(state_dict)
   state_dict <- .rename_state_dict_variables(state_dict)
 
-  state_dict <- lapply(
-    state_dict,
-    torch::as_array
-  )
+  state_dict <- torch::torch_save(state_dict, target_file)
 
-  saveRDS(state_dict, target_file)
   return(
     invisible(target_file)
   )
