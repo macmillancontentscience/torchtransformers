@@ -28,7 +28,7 @@ Imports:
     stringr (>= 1.4.0),
     torch (>= 0.4.0)
 Remotes:
-    macmillanhighered/dlr
+    macmillancontentscience/dlr
 Suggests: 
     tibble,
     testthat (>= 3.0.0)
