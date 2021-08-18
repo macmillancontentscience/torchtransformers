@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9006
+Version: 0.0.0.9007
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -31,5 +31,8 @@ Remotes:
     macmillancontentscience/dlr
 Suggests: 
     tibble,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
 Config/testthat/edition: 3
+VignetteBuilder: knitr

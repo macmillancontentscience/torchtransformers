@@ -1,0 +1,404 @@
+---
+title: "Fine Tuning Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fine Tuning Example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  eval = FALSE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(torch)
+library(torchtransformers)
+library(dplyr)
+library(wordpiece)
+library(progress)
+```
+
+This vignette will walk through...
+
+
+## Preparing the data
+
+### get the data
+
+The data we will use for this vignette is derived from NLI datasets, and can be
+obtained from
+https://www.sbert.net/examples/training/paraphrases/README.html#datasets
+
+```{r}
+# download data and transform into a more usable format
+data_url <- "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/AllNLI.jsonl.gz"
+
+data_dest <- tempfile("data_", fileext = ".txt")
+download.file(data_url, data_dest)
+data_string <- readLines(data_dest)
+
+# the data is in json format. There are three sentences per line.
+data_list <- purrr::map(data_string, jsonlite::fromJSON)
+data_list[[1]]
+# [1] "A person on a horse jumps over a broken down airplane."
+# [2] "A person is outdoors, on a horse."                     
+# [3] "A person is at a diner, ordering an omelette."  
+```
+
+### lightly clean the data
+
+A few of the "sentences" in the dataset are rather long and incoherent. Let's
+just remove any examples with an excessive character count.
+
+
+```{r}
+max_allowed_char <- 300L # That's still a pretty long sentence
+num_chars <- purrr::map_int(data_list, function(l) max(nchar(l)))
+data_list_short <- data_list[num_chars <= max_allowed_char]
+# We still have almost 99% of the original dataset.
+length(data_list_short)/length(data_list)
+# [1] 0.9887422
+# keep our memory clean!
+rm(data_list)
+```
+
+
+### tokenize the data
+
+The model we will train will be built using a BERT model, which uses wordpiece
+tokenization.
+
+First, download the wordpiece vocabulary and load using the {wordpiece} package.
+
+```{r}
+# BERT uncased vocabulary can be downloaded from:
+vocab_url <- "https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt"
+vocab_file <- "~/wordpiece_uncased_vocab.txt"
+download.file(vocab_url, vocab_file)
+
+vocab <- wordpiece::load_or_retrieve_vocab(vocab_file, use_cache = TRUE)
+```
+
+We need to tokenize each sentence. This can take a while, so we only want to do
+this once.
+
+```{r}
+# the wordpiece package doesn't (yet) make it easy to pad tokenized sequences to
+# a given length, but we'll need the inputs padded for our model. Define some
+# helper functions.
+
+pad_vector <- function(x, len, padding) {
+  if(length(x) >= len) {
+    return(x[1:len])
+  }
+  return(c(x, rep(padding, len-length(x))))
+}
+
+tokenize_with_padding <- function(text_list,
+                                  vocab,
+                                  pad_to_length = NULL,
+                                  sep_token = "[SEP]",
+                                  cls_token = "[CLS]",
+                                  pad_token = "[PAD]") {
+  sep_index <- vocab[[sep_token]]
+  names(sep_index) <- sep_token
+  cls_index <- vocab[[cls_token]]
+  names(cls_index) <- cls_token
+  pad_index <- vocab[[pad_token]]
+  names(pad_index) <- pad_token
+  
+  # seq_nums <- seq_along(text_list)
+  to_return <- purrr::map(seq_along(text_list), function(i) {
+    text <- text_list[[i]]
+    tokenized <- wordpiece::wordpiece_tokenize(text = text,
+                                               vocab = vocab)
+    inner_return <- c(cls_index, tokenized, sep_index)
+    if (!is.null(pad_to_length)) {
+      inner_return <- pad_vector(inner_return,
+                                 len = pad_to_length,
+                                 padding = pad_index)
+    }
+    inner_return
+  })
+  
+  # add one to the indices for torch! Figure out best way of handling this
+  # more generally...
+  to_return <- purrr::map(to_return, function(x) {x+1})
+  return(to_return)
+}
+```
+
+Let's tokenize!
+
+```{r}
+# 64 tokens will cover *most*, but not all, of the sentences in this dataset.
+# A few sentences will get truncated, but that's ok for this vignette.
+max_tokens <- 64L
+# The dataset is a list of 3-element character vectors. After tokenization, it
+# will be a list of 3-element lists, where each element is a tokenized sentence.
+
+# It will take several hours to tokenize all the examples. For this vignette,
+# let's just use the first 20k examples.
+data_tokenized <- purrr::map(data_list_short[1:20000], 
+                             tokenize_with_padding,
+                             vocab = vocab,
+                             pad_to_length = max_tokens)
+# saveRDS(data_tokenized, "~/tokenized_examples.rds")
+
+```
+
+### create torch dataset
+
+A dataset in torch is managed by creating a `dataset` object. Actually, we need
+to *extend* the `Dataset` class and make a custom class that implements certain
+methods. In particular, the `.getitem` method is how our datasets will serve up
+examples.
+
+```{r}
+my_dataset <- torch::dataset(
+  name = "triplet_dataset", 
+  
+  initialize = function(tokenized_list) {
+    nt <- length(tokenized_list[[1]][[1]])
+    anchor <- vapply(X = tokenized_list, 
+                     FUN = function(ex) {as.integer(ex[[1]])}, 
+                     FUN.VALUE = integer(nt))
+    positive <- vapply(X = tokenized_list, 
+                       FUN = function(ex) {as.integer(ex[[2]])}, 
+                       FUN.VALUE = integer(nt))
+    
+    negative <- vapply(X = tokenized_list, 
+                       FUN = function(ex) {as.integer(ex[[3]])}, 
+                       FUN.VALUE = integer(nt))
+
+    # need to insert the batch dimension in at second position
+    # self$anchor <- torch_unsqueeze(torch_tensor(anchor), 2)
+    # self$positive <- torch_unsqueeze(torch_tensor(positive), 2)
+    # self$negative <- torch_unsqueeze(torch_tensor(negative), 2)
+    
+    # ... or not?
+    self$anchor <- torch_tensor(anchor)
+    self$positive <- torch_tensor(positive)
+    self$negative <- torch_tensor(negative)
+    # For these single-segment inputs, the token type ids are just ones.
+    self$tt <- torch_tensor(array(1L, dim = dim(self$anchor)))
+  },
+
+  .getitem = function(i) {
+    # anchor <- self$anchor[, , i]
+    # positive <- self$positive[, , i]
+    # negative <- self$negative[, , i]
+    # tt <- self$tt[, , i]
+
+    anchor <- self$anchor[, i]
+    positive <- self$positive[, i]
+    negative <- self$negative[, i]
+    tt <- self$tt[, i]
+    list(anchor = anchor, positive = positive, negative = negative, tt = tt)
+  },
+  
+  .length = function() {
+    # dim(self$anchor)[3]
+    dim(self$anchor)[2]
+  }
+)
+
+```
+
+We actually want two datasets: one for training, and one for testing.
+
+```{r}
+# randomly pick some fraction to hold out for testing
+test_frac <- 0.1
+tot_ex <- length(data_tokenized)
+test_indices <- sample(1:tot_ex, size = floor(test_frac * tot_ex))
+train_indices <- setdiff(1:tot_ex, test_indices)
+
+# # for faster debugging, use only a fraction of the set
+# test_indices <- head(test_indices, 100)
+# train_indices <- head(train_indices, 400)
+train_ds <- my_dataset(data_tokenized[train_indices])
+test_ds <- my_dataset(data_tokenized[test_indices])
+```
+
+We don't interact directly with the datasets--we do it via a dataloader. The
+dataloaders handle batching, and some other details of the data loading process.
+
+```{r}
+# define a collation function so that the batch is structured right?
+# for now, I'm transposing the inputs when I pass them in...
+
+train_dl <- dataloader(train_ds, batch_size = 8L, shuffle = TRUE)
+test_dl <- dataloader(test_ds, batch_size = 4L)
+```
+
+
+## Defining the model
+
+We're going to build a "triplet" model with a BERT pre-trained spine.
+We use the `make_and_load_bert` function to get a BERT module with pre-trained
+weights loaded.
+
+```{r}
+# This module defines the "spine" of the model. It's basically BERT, with
+# the final CLS token taken as the output.
+
+# using pre-trained weights to start!
+spine_with_pooling <- torch::nn_module(
+  "pooled",
+  initialize = function(model_name = "bert_base_uncased") {
+    self$spine <- torchtransformers::make_and_load_bert(model_name)
+  },
+  forward = function(token_ids, token_type_ids) {
+    output <- self$spine(token_ids, token_type_ids)
+    
+    # take the output embeddings from last layer...
+    output <- output$output_embeddings
+    output <- output[[length(output)]]
+    # take the [CLS] token embedding for pooling
+    output <- output[1, , ]
+    return(output)
+  }
+)
+
+# Now the model function:
+triplet_for_training <- torch::nn_module(
+  "triplet",
+  initialize = function(model_name = "bert_mini_uncased") {
+    # We should export this df.
+    config <- torchtransformers:::bert_configs
+    embedding_size <- config$embedding_size[config$model_name == model_name]
+    # we'll share the same spine parameters between all three inputs
+    self$spine <- spine_with_pooling(model_name)
+
+    # after the spine, do a final dense layer
+    self$linear <- torch::nn_linear(in_features = embedding_size, 
+                                    out_features = embedding_size)
+  },
+  forward = function(anchor, positive, negative, tt) {
+    # For this particular dataset, all the token type id inputs are trivially
+    # the same.
+    v_anchor <- self$spine(anchor, tt)
+    v_positive <- self$spine(positive, tt)
+    v_negative <- self$spine(negative, tt)
+    
+    
+    output_anchor <- self$linear(v_anchor)
+    output_positive <- self$linear(v_positive)
+    output_negative <- self$linear(v_negative)
+    
+    return(list("anchor" = output_anchor,
+                "positive" = output_positive,
+                "negative" = output_negative))
+  }
+)
+
+# now the actual model:
+
+model <- triplet_for_training("bert_mini_uncased")
+model
+# An `nn_module` containing 11,170,560 parameters.
+# 
+# ── Modules ────────────────────────────────────────────────────────────────
+# • spine: <pooled> #11,104,768 parameters
+# • linear: <nn_linear> #65,792 parameters
+```
+
+The output of the model is three vectors, one for each input.
+
+## Training
+
+For each epoch of training, we will calculate the loss on the test set as well.
+
+```{r}
+
+loss_fun <- torch::nnf_triplet_margin_loss
+
+learning_rate <- 1e-4
+
+optimizer <- optim_adam(model$parameters, lr = learning_rate)
+
+epochs <- 10
+losses <- c()
+test_losses <- c()
+device <- "cuda"
+model$cuda()
+
+# set up a slick progress bar
+set_progress_bar <- function(total) {
+  progress_bar$new(
+    total = total, clear = FALSE, width = 70,
+    format = ":current/:total [:bar] - :elapsed - loss: :loss; test loss: :tl"
+  )
+}
+
+for(epoch in seq_len(epochs)) {
+ 
+  model$train() # make sure the model is in training mode
+  this_epoch_losses <- c()
+  this_epoch_test_losses <- c()
+
+  pb <- set_progress_bar(length(train_dl))
+  pb$message(glue::glue("Epoch {epoch}/{epochs}"))
+  coro::loop(for(batch in train_dl) {
+    
+    optimizer$zero_grad()
+    # output <- model(batch[[1]]$to(device = device), # anchor
+    #                 batch[[2]]$to(device = device), # positive
+    #                 batch[[3]]$to(device = device), # negative
+    #                 batch[[4]]$to(device = device) # tt
+    # )
+    output <- model(torch_transpose(batch[[1]]$to(device = device), 1, 2), # anchor
+                    torch_transpose(batch[[2]]$to(device = device), 1, 2), # positive
+                    torch_transpose(batch[[3]]$to(device = device), 1, 2), # negative
+                    torch_transpose(batch[[4]]$to(device = device), 1, 2) # tt
+    )
+    
+    loss <- loss_fun(output$anchor, output$positive, output$negative)
+    loss$backward()
+    optimizer$step()
+    
+    loss_r <- as.numeric(loss$item())
+    losses <- c(losses, loss_r)
+    this_epoch_losses <- c(this_epoch_losses, loss_r)
+
+    pb$tick(tokens = list(loss = round(mean(this_epoch_losses), 4),
+                          tl = ""))
+  })
+  
+   # Now run on test set...
+  model$eval()
+
+  pb <- set_progress_bar(length(test_dl))
+  pb$message(glue::glue("Testing for epoch {epoch}/{epochs}"))
+
+  coro::loop(for(batch in test_dl) {
+    with_no_grad({ # important to make sure we don't fill up memory!
+      # output <- model(batch[[1]]$to(device = device),
+      #                 batch[[2]]$to(device = device),
+      #                 batch[[3]]$to(device = device),
+      #                 batch[[4]]$to(device = device)
+      # )
+      output <- model(torch_transpose(batch[[1]]$to(device = device), 1, 2), # anchor
+                      torch_transpose(batch[[2]]$to(device = device), 1, 2), # positive
+                      torch_transpose(batch[[3]]$to(device = device), 1, 2), # negative
+                      torch_transpose(batch[[4]]$to(device = device), 1, 2) # tt
+      )
+      
+    })
+    loss <- loss_fun(output$anchor, output$positive, output$negative)
+    
+    loss_r <- as.numeric(loss$item())
+    test_losses <- c(test_losses, loss_r)
+    this_epoch_test_losses <- c(this_epoch_test_losses, loss_r)
+    pb$tick(tokens = list(tl = round(mean(this_epoch_test_losses), 4)))
+  })
+}
+
+```
+
