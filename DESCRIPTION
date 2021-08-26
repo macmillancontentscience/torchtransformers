@@ -30,9 +30,17 @@ Imports:
 Remotes:
     macmillancontentscience/dlr
 Suggests: 
+    coro (>= 1.0.1),
+    dplyr,
+    ggplot2,
+    glue,
     tibble,
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown
+    progress,
+    purrr,
+    rmarkdown,
+    wordpiece,
+    zoo
 Config/testthat/edition: 3
 VignetteBuilder: knitr
