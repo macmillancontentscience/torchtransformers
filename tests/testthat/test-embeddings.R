@@ -68,7 +68,9 @@ test_that("embeddings_bert module works", {
   t_ids <- matrix(sample(2:vs, size = cutoff * n_inputs, replace = TRUE),
     nrow = cutoff, ncol = n_inputs
   )
-  ttype_ids <- matrix(rep(1L, cutoff * n_inputs), nrow = cutoff, ncol = n_inputs)
+  ttype_ids <- matrix(
+    rep(1L, cutoff * n_inputs), nrow = cutoff, ncol = n_inputs
+  )
 
   wew <- matrix(sample(1:10, size = vs * emb_size, replace = TRUE) / 10,
     nrow = emb_size, ncol = vs

@@ -64,40 +64,32 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 .download_weights <- function(model_name = "bert_tiny_uncased",
                               redownload = FALSE) {
   url <- weights_url_map[model_name]
-  target_file <- paste0(model_name, "_weights", ".rds")
 
-  cached_file_path <- dlr::download_cache(
-    url = url,
-    appname = "torchtransformers",
-    filename = target_file,
-    process_f = .process_downloaded_weights,
-    redownload = redownload
+  return(
+    dlr::read_or_cache(
+      source_path = url,
+      appname = "torchtransformers",
+      process_f = .process_downloaded_weights,
+      read_f = torch::torch_load,
+      write_f = torch::torch_save,
+      force_process = redownload
+    )
   )
-
-  state_dict <- torch::torch_load(cached_file_path)
-
-  return(state_dict)
 }
 
-#' Process and Save Weights
+#' Process Downloaded Weights
 #'
 #' @param temp_file The path to the raw downloaded weights.
-#' @param target_file The path to which the processed weights should be written.
 #'
-#' @return The path to the saved weights, invisibly.
+#' @return The processed weights.
 #' @keywords internal
-.process_downloaded_weights <- function(temp_file, target_file) {
+.process_downloaded_weights <- function(temp_file) {
   state_dict <- torch::load_state_dict(temp_file)
   # I think we always want to do the concatenation and name fixing, so just do
   # that here.
   state_dict <- .concatenate_qkv_weights(state_dict)
   state_dict <- .rename_state_dict_variables(state_dict)
-
-  state_dict <- torch::torch_save(state_dict, target_file)
-
-  return(
-    invisible(target_file)
-  )
+  return(state_dict)
 }
 
 #' Concatenate Attention Weights
@@ -191,7 +183,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 .load_weights <- function(model,
                           model_name = "bert_base_uncased",
                           redownload = FALSE) {
-  # once the cache is set up, this should usually just be fetching from there
+  # This will usually just fetch from the cache
   sd <- .download_weights(model_name = model_name, redownload = redownload)
 
   my_sd <- model$state_dict()
