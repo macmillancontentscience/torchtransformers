@@ -92,7 +92,7 @@ First, download the wordpiece vocabulary and load using the {wordpiece} package.
 ```{r}
 # BERT uncased vocabulary can be downloaded from:
 vocab_url <- "https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt"
-vocab_file <- "~/wordpiece_uncased_vocab.txt"
+vocab_file <- "wordpiece_uncased_vocab.txt"
 download.file(vocab_url, vocab_file)
 
 vocab <- wordpiece::load_or_retrieve_vocab(vocab_file, use_cache = TRUE)
@@ -160,8 +160,8 @@ data_tokenized <- purrr::map(data_list_short[1:50000],
                              vocab = vocab,
                              pad_to_length = max_tokens)
 # It's a good idea to save the tokenized data before proceeding.
-# saveRDS(data_tokenized, "~/tokenized_examples.rds")
-# data_tokenized <- readRDS("~/tokenized_examples.rds")
+# saveRDS(data_tokenized, "tokenized_examples.rds")
+# data_tokenized <- readRDS("tokenized_examples.rds")
 ```
 
 ### Create torch dataset
@@ -207,18 +207,18 @@ my_dataset <- torch::dataset(
 
 ```
 
-We actually want two datasets: one for training, and one for testing.
+We actually want two datasets: one for training, and one for validation.
 
 ```{r}
-# Randomly pick 10% of data to hold out for testing.
+# Randomly pick 10% of data to hold out for validation.
 set.seed(123) 
-test_frac <- 0.1
+val_frac <- 0.1
 tot_ex <- length(data_tokenized)
-test_indices <- sample(1:tot_ex, size = floor(test_frac * tot_ex))
-train_indices <- setdiff(1:tot_ex, test_indices)
+val_indices <- sample(1:tot_ex, size = floor(val_frac * tot_ex))
+train_indices <- setdiff(1:tot_ex, val_indices)
 
 train_ds <- my_dataset(data_tokenized[train_indices])
-test_ds <- my_dataset(data_tokenized[test_indices])
+val_ds <- my_dataset(data_tokenized[val_indices])
 ```
 
 We don't interact directly with the datasets; we do it via a dataloader. The
@@ -242,7 +242,7 @@ collate_fn <- function(batch) {
 
 train_dl <- dataloader(train_ds, batch_size = 4L, shuffle = TRUE, 
                        collate_fn = collate_fn)
-test_dl <- dataloader(test_ds, batch_size = 2L, collate_fn = collate_fn)
+val_dl <- dataloader(val_ds, batch_size = 2L, collate_fn = collate_fn)
 ```
 
 
@@ -323,7 +323,8 @@ so the token type tensor will just be filled with ones.
 ## Training
 
 
-For each epoch of training, we will calculate the loss on the test set as well.
+For each epoch of training, we will calculate the loss on the validation set as 
+well.
 
 We use a learning rate schedule that "warms up" to a maximum, then gradually
 decreases.
@@ -352,7 +353,7 @@ scheduler <- optimizer %>%
 # Set up some empty vectors to keep track of things during training.
 losses <- c()
 learning_rates <- c()
-test_losses <- c()
+val_losses <- c()
 
 # Set the device for the input tensors.
 device <- "cuda"
@@ -365,12 +366,13 @@ set_progress_bar <- function(total) {
   )
 }
 
-# For reference, calculate loss on test set once before doing any training:
+# For reference, calculate loss on validation set once before doing any
+# training:
 model$eval()
-pb <- set_progress_bar(length(test_dl))
-this_epoch_test_losses <- c()
-pb$message("Testing before training loop")
-coro::loop(for(batch in test_dl) {
+pb <- set_progress_bar(length(val_dl))
+this_epoch_val_losses <- c()
+pb$message("Run on validation set before training loop")
+coro::loop(for(batch in val_dl) {
   with_no_grad({ # Important to make sure we don't fill up memory!
     # For this particular dataset, all the token type id inputs are trivially
     # the same, up to the batch size. Just construct the tt input here to
@@ -384,16 +386,16 @@ coro::loop(for(batch in test_dl) {
   })
   loss <- loss_fun(output$anchor, output$positive, output$negative)
   loss_r <- as.numeric(loss$item())
-  test_losses <- c(test_losses, loss_r)
-  this_epoch_test_losses <- c(this_epoch_test_losses, loss_r)
-  pb$tick(tokens = list(loss = round(mean(this_epoch_test_losses), 4)))
+  val_losses <- c(val_losses, loss_r)
+  this_epoch_val_losses <- c(this_epoch_val_losses, loss_r)
+  pb$tick(tokens = list(loss = round(mean(this_epoch_val_losses), 4)))
 })
   
 # Now do training loop.
 for(epoch in seq_len(epochs)) {
   model$train() # Make sure the model is in training mode!
   this_epoch_losses <- c()
-  this_epoch_test_losses <- c()
+  this_epoch_val_losses <- c()
 
   pb <- set_progress_bar(length(train_dl))
   pb$message(glue::glue("Epoch {epoch}/{epochs}"))
@@ -422,13 +424,13 @@ for(epoch in seq_len(epochs)) {
                           lr = round(lr, 6)))
   })
   
-   # For each epoch, calculate loss on test set.
+   # For each epoch, calculate loss on validation set.
   model$eval()
 
-  pb <- set_progress_bar(length(test_dl))
-  pb$message(glue::glue("Testing for epoch {epoch}/{epochs}"))
+  pb <- set_progress_bar(length(val_dl))
+  pb$message(glue::glue("Validation for epoch {epoch}/{epochs}"))
 
-  coro::loop(for(batch in test_dl) {
+  coro::loop(for(batch in val_dl) {
     with_no_grad({ # Important to make sure we don't fill up memory!
       tt <- torch_tensor(array(1L, dim = dim(batch[[1]])), device = device)
       output <- model(batch[[1]]$to(device = device),
@@ -440,9 +442,9 @@ for(epoch in seq_len(epochs)) {
     loss <- loss_fun(output$anchor, output$positive, output$negative)
     
     loss_r <- as.numeric(loss$item())
-    test_losses <- c(test_losses, loss_r)
-    this_epoch_test_losses <- c(this_epoch_test_losses, loss_r)
-    pb$tick(tokens = list(loss = round(mean(this_epoch_test_losses), 4)))
+    val_losses <- c(val_losses, loss_r)
+    this_epoch_val_losses <- c(this_epoch_val_losses, loss_r)
+    pb$tick(tokens = list(loss = round(mean(this_epoch_val_losses), 4)))
   })
 }
 
@@ -453,7 +455,7 @@ Let's save the trained model:
 ```{r}
 # We will also load these weights into a "vectorizer" model later.
 model_weights <- model$state_dict()
-torch::torch_save(model_weights, "~/triplet_model_weights")
+torch::torch_save(model_weights, "triplet_model_weights")
 ```
 
 It's interesting to look at how the loss changes over the training process.
@@ -476,22 +478,23 @@ plot_losses <- function(loss_vector, smoothing = 1000, title = "") {
     ggtitle(title)
 }
 
-# There were 2500 batches in the test set. Look at the last round of testing:
-mean(tail(test_losses, 2500)) # 0.164
+# There were 2500 batches in the validation set. Look at the last round of
+# validation:
+mean(tail(val_losses, 2500)) # 0.164
 # A loss below 1 indicates that anchor was closer to positive than to negative.
-# What fraction of test set had loss < 1?
-mean(tail(test_losses, 2500) < 1) # 0.94
+# What fraction of validation set had loss < 1?
+mean(tail(val_losses, 2500) < 1) # 0.94
 
-# Plot the training and test loss:
+# Plot the training and validation loss:
 plot_losses(losses, 150, "training")
-plot_losses(test_losses, 2500, "test set")
+plot_losses(val_losses, 2500, "validation set")
 ```
 
-After three epochs of training, the loss on the test set is about 0.16, with 94%
-of test batches having a loss less than 1.0.
+After three epochs of training, the loss on the validation set is about 0.16,
+with 94% of validation batches having a loss less than 1.0.
 
 ![](training_loss.png)
-![](test_loss.png)
+![](validation_loss.png)
 
 For reference, here's how the learning rate changed during training:
 
@@ -531,9 +534,9 @@ vectorizer_model <- vectorizer("bert_small_uncased")
 vectorizer_model$load_state_dict(model_weights)
 vectorizer_model$cuda()
 vectorizer_model$eval()
-# Pick a random row from the test data:
+# Pick a random row from the validation data:
 set.seed(123456)
-test_case <- sample(data_tokenized[test_indices], 1)[[1]]
+test_case <- sample(data_tokenized[val_indices], 1)[[1]]
 
 # Vectorize each sequence.
 n_tokens <- length(test_case[[1]])
