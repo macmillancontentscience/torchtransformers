@@ -2,19 +2,17 @@
 % Please edit documentation in R/load_weights.R
 \name{.process_downloaded_weights}
 \alias{.process_downloaded_weights}
-\title{Process and Save Weights}
+\title{Process Downloaded Weights}
 \usage{
-.process_downloaded_weights(temp_file, target_file)
+.process_downloaded_weights(temp_file)
 }
 \arguments{
 \item{temp_file}{The path to the raw downloaded weights.}
-
-\item{target_file}{The path to which the processed weights should be written.}
 }
 \value{
-The path to the saved weights, invisibly.
+The processed weights.
 }
 \description{
-Process and Save Weights
+Process Downloaded Weights
 }
 \keyword{internal}
