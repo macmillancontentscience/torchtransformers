@@ -106,10 +106,10 @@ some helper functions to convert the tokenized data into the right format.
 
 ```{r}
 pad_vector <- function(x, len, padding) {
-  if(length(x) >= len) {
+  if (length(x) >= len) {
     return(x[1:len])
   }
-  return(c(x, rep(padding, len-length(x))))
+  return(c(x, rep(padding, len - length(x))))
 }
 
 tokenize_with_padding <- function(text_list,
@@ -139,7 +139,7 @@ tokenize_with_padding <- function(text_list,
   })
   
   # Add one to the indices for torch! 
-  to_return <- purrr::map(to_return, function(x) {x+1})
+  to_return <- purrr::map(to_return, function(x) {x + 1})
   return(to_return)
 }
 ```
@@ -221,7 +221,7 @@ train_ds <- my_dataset(data_tokenized[train_indices])
 test_ds <- my_dataset(data_tokenized[test_indices])
 ```
 
-We don't interact directly with the datasets--we do it via a dataloader. The
+We don't interact directly with the datasets; we do it via a dataloader. The
 dataloaders handle batching, and some other details of the data loading process.
 
 ```{r}
