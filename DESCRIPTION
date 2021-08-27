@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9006
+Version: 0.0.0.9007
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -30,6 +30,17 @@ Imports:
 Remotes:
     macmillancontentscience/dlr
 Suggests: 
+    coro (>= 1.0.1),
+    dplyr,
+    ggplot2,
+    glue,
     tibble,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    knitr,
+    progress,
+    purrr,
+    rmarkdown,
+    wordpiece,
+    zoo
 Config/testthat/edition: 3
+VignetteBuilder: knitr
