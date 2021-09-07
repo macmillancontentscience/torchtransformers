@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9008
+Version: 0.0.0.9009
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -24,11 +24,9 @@ Depends: R (>= 3.5.1)
 License: Apache License (>= 2)
 RoxygenNote: 7.1.1
 Imports:
-    dlr (>= 0.0.1),
+    dlr (>= 1.0.0),
     stringr (>= 1.4.0),
     torch (>= 0.4.0)
-Remotes:
-    macmillancontentscience/dlr
 Suggests: 
     coro (>= 1.0.1),
     dplyr,
