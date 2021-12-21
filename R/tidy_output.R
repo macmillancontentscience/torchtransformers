@@ -1,0 +1,327 @@
+# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# token map ---------------------------------------------------------------
+
+#' Figure out Input Segments
+#'
+#' Given a data frame of input token sequences, add a column giving the segment
+#' index.
+#'
+#' @param token_df A data frame of tokens.
+#' @param sep_token The token used to demarcate segments. Defaults to "[SEP]".
+#' @param ... Columns to group by. Each group should be a single input sequence.
+#'
+#' @return The token data frame with a new `segment_index` column.
+#' @keywords internal
+.infer_segment_index <- function(token_df, sep_token = "[SEP]", ...) {
+  return(
+    dplyr::ungroup(
+      dplyr::select(
+        dplyr::mutate(
+          dplyr::group_by(
+            dplyr::mutate(
+              token_df,
+              is_sep = token == sep_token
+            ),
+            ...
+          ),
+          segment_index = cumsum(is_sep) - is_sep + 1L
+        ),
+        -is_sep
+      )
+    )
+  )
+}
+
+#' Make Token Map
+#'
+#' Given a list of input token sequences, construct a data frame with explicit
+#' index columns.
+#'
+#' @param tokenized_text A list of tokenized input text. Each element in the
+#'   list is expected to be a named integer vector of tokens.
+#' @param sep_token The token used to demarcate segments. Defaults to "[SEP]".
+#'
+#' @return A data frame of the input tokens, with explicit index columns.
+#' @keywords internal
+.make_token_map <- function(tokenized_text, sep_token = "[SEP]") {
+  token_map <- tibble::tibble(
+    sequence_index = integer(),
+    token_index = integer(),
+    segment_index = integer(),
+    token = character()
+  )
+  for (i in seq_along(tokenized_text)) {
+    tokens <- names(tokenized_text[[i]])
+    token_seq <- seq_along(tokens)
+    token_map <- dplyr::bind_rows(
+      token_map,
+      data.frame(
+        sequence_index = as.integer(i),
+        token_index = token_seq,
+        token = tokens,
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+  token_map <- .infer_segment_index(token_map, sep_token, sequence_index)
+
+  return(token_map)
+}
+
+# maybe add something like this to examples.
+# # actual token indices don't matter here
+# mock_up_text <- list(c("[CLS]" = 102, "1.1" = 42, "1.2" = 43, "[SEP]" = 103, "2.1" = 44, "2.2" = 45, "[SEP]" = 103),
+#                      c("[CLS]" = 102, "1.1b" = 46, "1.2b" = 47, "[SEP]" = 103, "2.1b" = 48, "2.2b" = 49, "[SEP]" = 103, "3.1b" = 50, "3.2b" = 51, "[SEP]" = 103))
+#
+# .make_token_map(mock_up_text)
+
+# tidy attention output ---------------------------------------------------
+
+
+
+# flesh out documentation. This function takes the raw output and turns it into
+# a data frame.
+#' @keywords internal
+.process_attention_result <- function(bert_model_output) {
+  attention_output <- bert_model_output$attention_weights
+
+  # Infer number of tokens in input and construct a sequence of that length.
+  token_seq <- seq_len(dim(attention_output[[1]])[[4]])
+  layer_indexes_actual <- seq_len(length(attention_output))
+  big_attention <- tibble::tibble(
+    sequence_index = integer(),
+    token_index = integer(),
+    segment_index = integer(),
+    token = character(),
+    layer_index = integer(),
+    head_index = integer(),
+    attention_token_index = integer(),
+    attention_segment_index = integer(),
+    attention_token = character(),
+    attention_weight = double()
+  )
+
+  sequence_attention <- purrr::map_dfr(
+    layer_indexes_actual,
+    function(this_index) {
+      result_i <- torch::as_array(attention_output[[this_index]])
+      this_attention <- tidyr::unnest_longer(
+        tidyr::unnest_longer(
+          tidyr::unnest_longer(
+            tibble::enframe(
+              purrr::array_tree(
+                result_i[, , token_seq, token_seq]
+              ),
+              name = "sequence_index"
+            ),
+            value,
+            indices_to = "head_index"
+          ),
+          value,
+          indices_to = "token_index"
+        ),
+        value,
+        indices_to = "attention_token_index",
+        values_to = "attention_weight"
+      )
+      this_attention$layer_index <- layer_indexes_actual[[this_index]]
+      this_attention
+    }
+  )
+  big_attention <- dplyr::bind_rows(
+    big_attention,
+    sequence_attention
+  )
+
+  return(big_attention)
+}
+
+# This function takes the output from above function and joins on the token_map
+# information and filters out the "pad" items.
+#' @keywords internal
+.finalize_attention <- function(processed_attention,
+                                token_map,
+                                pad_token = "[PAD]") {
+  to_ret <- dplyr::select(
+    dplyr::mutate(
+      dplyr::left_join(
+        dplyr::select(
+          dplyr::mutate(
+            dplyr::left_join(
+              processed_attention, token_map,
+              by = c("sequence_index", "token_index"),
+              suffix = c("", "_fill")
+            ),
+            segment_index = segment_index_fill,
+            token = token_fill
+          ),
+          -dplyr::ends_with("_fill")
+        ),
+        token_map,
+        by = c("sequence_index", "attention_token_index" = "token_index"),
+        suffix = c("", "_fill")
+      ),
+      attention_segment_index = segment_index_fill,
+      attention_token = token_fill
+    ),
+    -dplyr::ends_with("_fill")
+  )
+  # This is fine.
+  return(dplyr::filter(to_ret,
+                       token != pad_token,
+                       attention_token != pad_token))
+}
+
+#' Tidy the Attention Output
+#'
+#' Given the output from a transformer model, construct a tidy data frame.
+#'
+#' @param bert_model_output The output from a BERT model.
+#' @param tokenized_input A list of tokenized input text. Each element in the
+#'   list is expected to be a named integer vector of tokens.
+#' @param pad_token The token used to pad inputs. Defaults to "[PAD]".
+#'
+#' @return A tidy version of the attention weights matrix, with one weight value
+#'   per row.
+#' @export
+tidy_attention_output <- function(bert_model_output,
+                                  tokenized_input,
+                                  pad_token = "[PAD]") {
+  attention_df <- .process_attention_result(bert_model_output)
+  token_map <- .make_token_map(tokenized_input)
+  attention_df <- .finalize_attention(attention_df,
+                                      token_map,
+                                      pad_token = pad_token)
+
+  return(attention_df)
+}
+
+#ttt <-  tidy_attention_output(attention_output = bert_output$attention_weights, tokenized_text)
+
+# tidy embeddings output --------------------------------------------------
+
+.process_embeddings_result <- function(bert_model_output) {
+
+  embedding_output <- bert_model_output$output_embeddings
+  initial_embeddings <- bert_model_output$initial_embeddings
+  # Infer number of tokens in input and construct a sequence of that length.
+  token_seq <- seq_len(dim(embedding_output[[1]])[[1]])
+  # Infer dimensionality.
+  n_dimensions <- dim(embedding_output[[1]])[[3]]
+
+  layer_indexes_actual <- seq_len(length(embedding_output))
+
+  big_output <- tibble::tibble(
+    sequence_index = integer(),
+    segment_index = integer(),
+    token_index = integer(),
+    token = character(),
+    layer_index = integer()
+  )
+  for (colname in paste0("V", seq_len(n_dimensions))) {
+    big_output[[colname]] <- integer()
+  }
+  layer_indexes_all <- c(0, layer_indexes_actual)
+  # in {tt}, the initial embeddings are a separate component of the output.
+  # Think about how best to handle this...
+
+  # result_output_names <- paste0("layer_output_", layer_indexes_output)
+  sequence_outputs <- purrr::map_dfr(
+    layer_indexes_all,
+    function(this_index) {
+      if (this_index == 0) {
+        result_i <- initial_embeddings
+      } else {
+        result_i <- torch::as_array(embedding_output[[this_index]])
+      }
+
+      this_output <-
+        tidyr::unnest_wider(
+          tidyr::unnest_longer(
+            tibble::enframe(
+              purrr::array_tree(
+                result_i[token_seq, ,]
+              ),
+              name = "token_index"
+            ),
+            value,
+            values_to = "V", # for backwards compatibility
+            indices_to = "sequence_index"
+          ),
+          V,
+          names_sep = ""
+        )
+
+      this_output[["layer_index"]] <- this_index
+      this_output
+    }
+  )
+  return(
+    dplyr::arrange(
+      dplyr::bind_rows(
+        big_output,
+        sequence_outputs
+      ),
+      sequence_index
+    )
+  )
+
+}
+
+.finalize_embeddings <- function(processed_embeddings,
+                                 token_map,
+                                 pad_token = "[PAD]") {
+  to_ret <- dplyr::select(
+    dplyr::mutate(
+      dplyr::left_join(
+        processed_embeddings, token_map,
+        by = c("sequence_index", "token_index"),
+        suffix = c("", "_fill")
+      ),
+      segment_index = segment_index_fill,
+      token = token_fill
+    ),
+    -dplyr::ends_with("_fill")
+  )
+
+  return(dplyr::filter(to_ret, token != pad_token))
+}
+
+#' Tidy the Embeddings Output
+#'
+#' Given the output from a transformer model, construct a tidy data frame.
+#'
+#' @param bert_model_output The output from a BERT model.
+#' @param tokenized_input A list of tokenized input text. Each element in the
+#'   list is expected to be a named integer vector of tokens.
+#' @param pad_token The token used to pad inputs. Defaults to "[PAD]".
+#'
+#' @return A tidy version of the output embeddings, with one embedding vector
+#'   per row.
+#' @export
+tidy_embeddings_output <- function(bert_model_output,
+                                   tokenized_input,
+                                   pad_token = "[PAD]") {
+  embeddings_df <- .process_embeddings_result(bert_model_output)
+  token_map <- .make_token_map(tokenized_input)
+  embeddings_df <- .finalize_embeddings(embeddings_df,
+                                      token_map,
+                                      pad_token = pad_token)
+
+  return(embeddings_df)
+}
+

@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9009
+Version: 0.0.0.9010
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -25,11 +25,14 @@ License: Apache License (>= 2)
 RoxygenNote: 7.1.1
 Imports:
     dlr (>= 1.0.0),
+    dplyr (>= 1.0.7),
+    purrr,
     stringr (>= 1.4.0),
+    tibble,
+    tidyr,
     torch (>= 0.4.0)
 Suggests: 
     coro (>= 1.0.1),
-    dplyr,
     ggplot2,
     glue,
     tibble,
