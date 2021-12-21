@@ -92,9 +92,14 @@
 # tidy attention output ---------------------------------------------------
 
 
-
-# flesh out documentation. This function takes the raw output and turns it into
-# a data frame.
+#' Process Attention
+#'
+#' Takes the raw output from a BERT model and turns the attention weights matrix
+#' into a data frame.
+#'
+#' @param bert_model_output The raw output from a BERT model.
+#'
+#' @return The attention weights from a BERT model, as a data frame.
 #' @keywords internal
 .process_attention_result <- function(bert_model_output) {
   attention_output <- bert_model_output$attention_weights
@@ -150,8 +155,17 @@
   return(big_attention)
 }
 
-# This function takes the output from above function and joins on the token_map
-# information and filters out the "pad" items.
+#' Finalize Attention Output
+#'
+#' Takes the data frame output from `.process_attention_result`, joins on the
+#' `token_map` information and filters out the padding tokens.
+#'
+#' @param processed_attention The output from `.process_attention_result`.
+#' @param token_map The output from `.make_token_map`.
+#' @param pad_token The token used to pad inputs. Defaults to "[PAD]".
+#'
+#' @return A tidy version of the attention weights matrix, with one weight value
+#'   per row.
 #' @keywords internal
 .finalize_attention <- function(processed_attention,
                                 token_map,
@@ -188,7 +202,8 @@
 
 #' Tidy the Attention Output
 #'
-#' Given the output from a transformer model, construct a tidy data frame.
+#' Given the output from a transformer model, construct a tidy data frame with
+#' the attention weights data.
 #'
 #' @param bert_model_output The output from a BERT model.
 #' @param tokenized_input A list of tokenized input text. Each element in the
@@ -210,12 +225,19 @@ tidy_attention_output <- function(bert_model_output,
   return(attention_df)
 }
 
-#ttt <-  tidy_attention_output(attention_output = bert_output$attention_weights, tokenized_text)
 
 # tidy embeddings output --------------------------------------------------
 
+#' Process Embeddings
+#'
+#' Takes the raw output from a BERT model and turns the embeddings into a data
+#' frame.
+#'
+#' @param bert_model_output The raw output from a BERT model.
+#'
+#' @return The embedding vectors from a BERT model, as a data frame.
+#' @keywords internal
 .process_embeddings_result <- function(bert_model_output) {
-
   embedding_output <- bert_model_output$output_embeddings
   initial_embeddings <- bert_model_output$initial_embeddings
   # Infer number of tokens in input and construct a sequence of that length.
@@ -236,35 +258,34 @@ tidy_attention_output <- function(bert_model_output,
     big_output[[colname]] <- integer()
   }
   layer_indexes_all <- c(0, layer_indexes_actual)
-  # in {tt}, the initial embeddings are a separate component of the output.
-  # Think about how best to handle this...
 
-  # result_output_names <- paste0("layer_output_", layer_indexes_output)
   sequence_outputs <- purrr::map_dfr(
     layer_indexes_all,
     function(this_index) {
       if (this_index == 0) {
+        # In {tt}, the initial embeddings are returned as a separate element of
+        # of the output. This is how we combine them with the layer output
+        # embeddings.
         result_i <- initial_embeddings
       } else {
         result_i <- torch::as_array(embedding_output[[this_index]])
       }
 
-      this_output <-
-        tidyr::unnest_wider(
-          tidyr::unnest_longer(
-            tibble::enframe(
-              purrr::array_tree(
-                result_i[token_seq, ,]
-              ),
-              name = "token_index"
+      this_output <- tidyr::unnest_wider(
+        tidyr::unnest_longer(
+          tibble::enframe(
+            purrr::array_tree(
+              result_i[token_seq, ,]
             ),
-            value,
-            values_to = "V", # for backwards compatibility
-            indices_to = "sequence_index"
+            name = "token_index"
           ),
-          V,
-          names_sep = ""
-        )
+          value,
+          values_to = "V", # for backwards compatibility
+          indices_to = "sequence_index"
+        ),
+        V,
+        names_sep = ""
+      )
 
       this_output[["layer_index"]] <- this_index
       this_output
@@ -282,6 +303,18 @@ tidy_attention_output <- function(bert_model_output,
 
 }
 
+#' Finalize Embeddings Output
+#'
+#' Takes the data frame output from `.process_embeddings_result`, joins on the
+#' `token_map` information and filters out the padding tokens.
+#'
+#' @param processed_embeddings The output from `.process_embeddings_result`.
+#' @param token_map The output from `.make_token_map`.
+#' @param pad_token The token used to pad inputs. Defaults to "[PAD]".
+#'
+#' @return A tidy version of the output embeddings, with one embedding vector
+#'   per row.
+#' @keywords internal
 .finalize_embeddings <- function(processed_embeddings,
                                  token_map,
                                  pad_token = "[PAD]") {

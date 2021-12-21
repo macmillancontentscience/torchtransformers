@@ -19,5 +19,6 @@ A tidy version of the attention weights matrix, with one weight value
   per row.
 }
 \description{
-Given the output from a transformer model, construct a tidy data frame.
+Given the output from a transformer model, construct a tidy data frame with
+the attention weights data.
 }
