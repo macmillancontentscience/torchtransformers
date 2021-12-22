@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# misc imports ------------------------------------------------------------
+
+#' @importFrom rlang .data
+rlang::.data
+#' @importFrom rlang .env
+rlang::.env
+
+# could also import pipe, and rewrite some of the functions to be more readable.
 
 # token map ---------------------------------------------------------------
 
@@ -34,13 +42,13 @@
           dplyr::group_by(
             dplyr::mutate(
               token_df,
-              is_sep = token == sep_token
+              is_sep = .data$token == .env$sep_token
             ),
             ...
           ),
-          segment_index = cumsum(is_sep) - is_sep + 1L
+          segment_index = cumsum(.data$is_sep) - .data$is_sep + 1L
         ),
-        -is_sep
+        -.data$is_sep
       )
     )
   )
@@ -77,17 +85,11 @@
       )
     )
   }
-  token_map <- .infer_segment_index(token_map, sep_token, sequence_index)
+  token_map <- .infer_segment_index(token_map, sep_token, .data$sequence_index)
 
   return(token_map)
 }
 
-# maybe add something like this to examples.
-# # actual token indices don't matter here
-# mock_up_text <- list(c("[CLS]" = 102, "1.1" = 42, "1.2" = 43, "[SEP]" = 103, "2.1" = 44, "2.2" = 45, "[SEP]" = 103),
-#                      c("[CLS]" = 102, "1.1b" = 46, "1.2b" = 47, "[SEP]" = 103, "2.1b" = 48, "2.2b" = 49, "[SEP]" = 103, "3.1b" = 50, "3.2b" = 51, "[SEP]" = 103))
-#
-# .make_token_map(mock_up_text)
 
 # tidy attention output ---------------------------------------------------
 
@@ -133,13 +135,13 @@
               ),
               name = "sequence_index"
             ),
-            value,
+            .data$value,
             indices_to = "head_index"
           ),
-          value,
+          .data$value,
           indices_to = "token_index"
         ),
-        value,
+        .data$value,
         indices_to = "attention_token_index",
         values_to = "attention_weight"
       )
@@ -180,8 +182,8 @@
               by = c("sequence_index", "token_index"),
               suffix = c("", "_fill")
             ),
-            segment_index = segment_index_fill,
-            token = token_fill
+            segment_index = .data$segment_index_fill,
+            token = .data$token_fill
           ),
           -dplyr::ends_with("_fill")
         ),
@@ -189,15 +191,15 @@
         by = c("sequence_index", "attention_token_index" = "token_index"),
         suffix = c("", "_fill")
       ),
-      attention_segment_index = segment_index_fill,
-      attention_token = token_fill
+      attention_segment_index = .data$segment_index_fill,
+      attention_token = .data$token_fill
     ),
     -dplyr::ends_with("_fill")
   )
   # This is fine.
   return(dplyr::filter(to_ret,
-                       token != pad_token,
-                       attention_token != pad_token))
+                       .data$token != .env$pad_token,
+                       .data$attention_token != .env$pad_token))
 }
 
 #' Tidy the Attention Output
@@ -279,11 +281,11 @@ tidy_attention_output <- function(bert_model_output,
             ),
             name = "token_index"
           ),
-          value,
+          .data$value,
           values_to = "V", # for backwards compatibility
           indices_to = "sequence_index"
         ),
-        V,
+        .data$V,
         names_sep = ""
       )
 
@@ -297,7 +299,7 @@ tidy_attention_output <- function(bert_model_output,
         big_output,
         sequence_outputs
       ),
-      sequence_index
+      .data$sequence_index
     )
   )
 
@@ -325,13 +327,13 @@ tidy_attention_output <- function(bert_model_output,
         by = c("sequence_index", "token_index"),
         suffix = c("", "_fill")
       ),
-      segment_index = segment_index_fill,
-      token = token_fill
+      segment_index = .data$segment_index_fill,
+      token = .data$token_fill
     ),
     -dplyr::ends_with("_fill")
   )
 
-  return(dplyr::filter(to_ret, token != pad_token))
+  return(dplyr::filter(to_ret, .data$token != pad_token))
 }
 
 #' Tidy the Embeddings Output
