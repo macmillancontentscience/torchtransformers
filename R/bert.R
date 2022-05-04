@@ -126,3 +126,19 @@ model_bert <- torch::nn_module(
     ))
   }
 )
+
+#' @export
+config_bert <- function(bert_model,
+                        parameter = c(
+                          "embedding_size",
+                          "n_layer",
+                          "n_head",
+                          "max_tokens",
+                          "vocab_size"
+                        )) {
+  stopifnot(
+    bert_model %in% bert_configs$model_name
+  )
+  parameter <- match.arg(parameter)
+  bert_configs[bert_configs$model_name == bert_model,][[parameter]]
+}

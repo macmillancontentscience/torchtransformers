@@ -18,299 +18,261 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(torch)
 library(torchtransformers)
+library(luz)
+
+library(dlr)
 library(dplyr)
+library(jsonlite)
+library(rsample)
 library(wordpiece)
-library(progress)
+library(wordpiece.data)
 library(ggplot2)
 ```
 
 This vignette will walk through the process of training a "triplet" model to 
 produce sentence embeddings for some task. 
 
-Each training example for this type of model consists of three pieces of input
-text: the anchor, the positive example, and the negative example. The training
-loss for the model will be the _difference_ in the distance from the anchor to
-the negative example and the distance to the positive example. The loss is
-minimized during training, so the model learns to put the anchor closer to the
-positive example than to the negative example.
+Each training example for this type of model consists of three pieces of input text: the anchor, the positive example, and the negative example. 
+The training loss for the model will be the _difference_ between
 
-After enough training, the hope is that the model has learned to make useful
-representations for the input examples. The model can then be used to generate
-embedding vectors for any input sentences.
+- The distance from the anchor to the negative example, and
+- the distance from the anchor to the positive example. 
 
+The loss is minimized during training, so the model learns to put the anchor closer to the positive example than to the negative example in embedding space.
 
-## Prepare the dataset
+After training, the hope is that the model has learned to make useful representations for the input examples. 
+The model can then be used to generate embedding vectors for any input sentences.
 
 
-### Get the data
+## Get the data
 
 The data we will use for this vignette is derived from NLI datasets, and can be
-obtained from
-https://www.sbert.net/examples/training/paraphrases/README.html#datasets
+obtained [online](https://www.sbert.net/examples/training/paraphrases/README.html#datasets).
+We use the the `read_or_cache()` function from `{dlr}` to avoid repeatedly processing the same dataset.
 
-```{r}
-# Download data and transform into a more usable format.
+```{r download}
+# dlr needs a processor function that takes the path to a temp file as its first
+# argument.
+paraphrase_processor <- function(source_file) {
+  return(
+    jsonlite::stream_in(file(source_file)) %>% 
+      dplyr::as_tibble() %>% 
+      dplyr::rename(
+        anchor = "V1",
+        positive = "V2",
+        negative = "V3"
+      ) %>% 
+      # The dataset contains some long, rambling sentences that we don't want
+      # for this demonstration. Filter out those entire rows.
+      dplyr::mutate(
+        max_chars = pmax(
+          nchar(anchor), nchar(positive), nchar(negative)
+        )
+      ) %>% 
+      dplyr::filter(max_chars <= 300) %>% 
+      dplyr::select(-max_chars)
+  )
+}
+
 data_url <- "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/paraphrases/AllNLI.jsonl.gz"
 
-data_dest <- tempfile("data_", fileext = ".txt")
-download.file(data_url, data_dest)
-data_string <- readLines(data_dest)
-
-# The data is in json format. There are three sentences per line.
-data_list <- purrr::map(data_string, jsonlite::fromJSON)
-data_list[[1]]
-# [1] "A person on a horse jumps over a broken down airplane."
-# [2] "A person is outdoors, on a horse."                     
-# [3] "A person is at a diner, ordering an omelette."  
-```
-
-### Lightly clean the data
-
-A few of the "sentences" in the dataset are rather long and incoherent. Let's
-just remove any examples with an excessive character count.
-
-
-```{r}
-max_allowed_char <- 300L # That's still a pretty long sentence
-num_chars <- purrr::map_int(data_list, function(l) max(nchar(l)))
-data_list_short <- data_list[num_chars <= max_allowed_char]
-# We still have almost 99% of the original dataset.
-length(data_list_short)/length(data_list)
-# [1] 0.9887422
-# Keep our memory clean!
-rm(data_list)
-```
-
-
-### Tokenize the data
-
-The model we will train will be built with BERT, which uses wordpiece
-tokenization.
-
-First, download the wordpiece vocabulary and load using the {wordpiece} package.
-
-```{r}
-# BERT uncased vocabulary can be downloaded from:
-vocab_url <- "https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt"
-vocab_file <- "wordpiece_uncased_vocab.txt"
-download.file(vocab_url, vocab_file)
-
-vocab <- wordpiece::load_or_retrieve_vocab(vocab_file, use_cache = TRUE)
-```
-
-We need to tokenize each sentence. 
-
-The {wordpiece} package doesn't (yet) make it easy to pad tokenized sequences to
-a given length, but we'll need the inputs padded to use with our model. Here are
-some helper functions to convert the tokenized data into the right format.
-
-```{r}
-pad_vector <- function(x, len, padding) {
-  if (length(x) >= len) {
-    return(x[1:len])
-  }
-  return(c(x, rep(padding, len - length(x))))
-}
-
-tokenize_with_padding <- function(text_list,
-                                  vocab,
-                                  pad_to_length = NULL,
-                                  sep_token = "[SEP]",
-                                  cls_token = "[CLS]",
-                                  pad_token = "[PAD]") {
-  sep_index <- vocab[[sep_token]]
-  names(sep_index) <- sep_token
-  cls_index <- vocab[[cls_token]]
-  names(cls_index) <- cls_token
-  pad_index <- vocab[[pad_token]]
-  names(pad_index) <- pad_token
-  
-  to_return <- purrr::map(seq_along(text_list), function(i) {
-    text <- text_list[[i]]
-    tokenized <- wordpiece::wordpiece_tokenize(text = text,
-                                               vocab = vocab)
-    inner_return <- c(cls_index, tokenized, sep_index)
-    if (!is.null(pad_to_length)) {
-      inner_return <- pad_vector(inner_return,
-                                 len = pad_to_length,
-                                 padding = pad_index)
-    }
-    inner_return
-  })
-  
-  # Add one to the indices for torch! 
-  to_return <- purrr::map(to_return, function(x) {x + 1})
-  return(to_return)
-}
-```
-
-Let's tokenize! This can take a while, so we only want to do this once.
-
-```{r}
-# 64 tokens will cover *most*, but not all, of the sentences in this dataset.
-# A few sentences will get truncated, but that's ok for this vignette.
-max_tokens <- 64L
-# The dataset is a list of 3-element character vectors. After tokenization, it
-# will be a list of 3-element lists, where each element is a tokenized sentence.
-
-# It will take several hours to tokenize all the examples. For this vignette,
-# let's just tokenize the first 50K examples.
-data_tokenized <- purrr::map(data_list_short[1:50000], 
-                             tokenize_with_padding,
-                             vocab = vocab,
-                             pad_to_length = max_tokens)
-# It's a good idea to save the tokenized data before proceeding.
-# saveRDS(data_tokenized, "tokenized_examples.rds")
-# data_tokenized <- readRDS("tokenized_examples.rds")
-```
-
-### Create torch dataset
-
-A dataset in torch is managed by creating a `dataset` object. Actually, we need
-to *extend* the `Dataset` class and make a custom class that implements certain
-methods. In particular, the `.getitem` method is how our datasets will serve up
-examples.
-
-```{r}
-my_dataset <- torch::dataset(
-  name = "triplet_dataset", 
-  
-  initialize = function(tokenized_list) {
-    nt <- length(tokenized_list[[1]][[1]])
-    anchor <- vapply(X = tokenized_list, 
-                     FUN = function(ex) {as.integer(ex[[1]])}, 
-                     FUN.VALUE = integer(nt))
-    positive <- vapply(X = tokenized_list, 
-                       FUN = function(ex) {as.integer(ex[[2]])}, 
-                       FUN.VALUE = integer(nt))
-    
-    negative <- vapply(X = tokenized_list, 
-                       FUN = function(ex) {as.integer(ex[[3]])}, 
-                       FUN.VALUE = integer(nt))
-
-    self$anchor <- torch_tensor(anchor)
-    self$positive <- torch_tensor(positive)
-    self$negative <- torch_tensor(negative)
-  },
-
-  .getitem = function(i) {
-    anchor <- self$anchor[, i]
-    positive <- self$positive[, i]
-    negative <- self$negative[, i]
-    list(anchor = anchor, positive = positive, negative = negative)
-  },
-  
-  .length = function() {
-    dim(self$anchor)[2]
-  }
+paraphrases <- dlr::read_or_cache(
+  source_path = data_url,
+  appname = "torchtransformers",
+  process_f = paraphrase_processor
 )
 
+paraphrases$anchor[[1]]
+# [1] "A person on a horse jumps over a broken down airplane."
+
+paraphrases$positive[[1]]
+# [2] "A person is outdoors, on a horse."                     
+
+paraphrases$negative[[1]]
+# [3] "A person is at a diner, ordering an omelette."
+
+# TODO: Consider doing the tokenizing as part of the original processing, so
+# it's done once and saved.
 ```
 
-We actually want two datasets: one for training, and one for validation.
+We split this data into a training set and a validation set.
+We'll use 90% of the data for training.
+We'll use the other 10% to validate the model as we train.
 
-```{r}
-# Randomly pick 10% of data to hold out for validation.
-set.seed(123) 
-val_frac <- 0.1
-tot_ex <- length(data_tokenized)
-val_indices <- sample(1:tot_ex, size = floor(val_frac * tot_ex))
-train_indices <- setdiff(1:tot_ex, val_indices)
-
-train_ds <- my_dataset(data_tokenized[train_indices])
-val_ds <- my_dataset(data_tokenized[val_indices])
+```{r split}
+set.seed(123)
+paraphrases_split <- rsample::initial_split(paraphrases, prop = 0.9)
+paraphrases_train <- rsample::training(paraphrases_split)
+paraphrases_valid <- rsample::testing(paraphrases_split)
 ```
 
-We don't interact directly with the datasets; we do it via a dataloader. The
-dataloaders handle batching, and some other details of the data loading process.
+## Prepare the data for torch
 
-```{r}
-# define a collation function so that the batch is structured correctly.
-# Apparently, by default the dataloader puts the batch dimension first when
-# constructing batches, but out model expects it to be the second dimension.
-collate_fn <- function(batch) {
-  # See this blog post for tips on constructing the collation function:
-  # https://blogs.rstudio.com/ai/posts/2021-02-04-simple-audio-classification-with-torch/
-  anchor <- torch::torch_stack(sapply(batch, function(b) {b$anchor}), 2)
-  positive <- torch::torch_stack(sapply(batch, function(b) {b$positive}), 2)
-  negative <- torch::torch_stack(sapply(batch, function(b) {b$negative}), 2)
+To load triplet data into `{torch}`, we will need to define a custom torch `dataset` constructor.
+This constructor will convert vectors of anchors, positive examples, and negative examples into a dataset that can be loaded into `{torch}` batches.
+For ease-of-use we're passing in a data.frame and assuming it is named like our data.frame.
 
-  return(list(anchor = anchor,
-              positive = positive,
-              negative = negative))
-}
-
-train_dl <- dataloader(train_ds, batch_size = 4L, shuffle = TRUE, 
-                       collate_fn = collate_fn)
-val_dl <- dataloader(val_ds, batch_size = 2L, collate_fn = collate_fn)
+```{r dataset-constructor}
+triplet_text_dataset <- torch::dataset(
+  name = "triplet_text_dataset",
+  initialize = function(df, n_tokens = 64) {
+    # First we need to tokenize everything and add the BERT-style tokens to
+    # standardize the inputs. We simplify the token vectors to a matrix for each
+    # input.
+    anchor_tokenized <- tokenize_bert(
+      text = df$anchor,
+      n_tokens = n_tokens,
+      simplify = TRUE
+    )
+    positive_tokenized <- tokenize_bert(
+      text = df$positive,
+      n_tokens = n_tokens,
+      simplify = TRUE
+    )
+    negative_tokenized <- tokenize_bert(
+      text = df$negative,
+      n_tokens = n_tokens,
+      simplify = TRUE
+    )
+    
+    # We supply those matrices as tensors.
+    self$anchor <- torch::torch_tensor(anchor_tokenized$token_ids_matrix)
+    self$positive <- torch::torch_tensor(positive_tokenized$token_ids_matrix)
+    self$negative <- torch::torch_tensor(negative_tokenized$token_ids_matrix)
+    
+    # For this model, the token_types matrix is the same for all three types of
+    # data, so we'll just return one of them.
+    self$token_types <- torch::torch_tensor(anchor_tokenized$token_type_ids)
+  },
+  # The dataset needs to supply a method to fetch particular vectors within each
+  # tensor.
+  .getitem = function(index) {
+    list(
+      list(
+        anchor = list(
+          token_ids = self$anchor[index, ],
+          token_type_ids = self$token_types[index, ]
+        ), 
+        positive = list(
+          token_ids = self$positive[index, ],
+          token_type_ids = self$token_types[index, ]
+        ), 
+        negative = list(
+          token_ids = self$negative[index, ],
+          token_type_ids = self$token_types[index, ]
+        )
+      ),
+      list() # No target.
+    )
+  },
+  # The dataset also needs a method to determine the length of the entire
+  # dataset.
+  .length = function() {
+    dim(self$anchor)[[1]]
+  }
+)
 ```
 
+We use the constructor to create a training dataset and a validation dataset.
 
-## Defining the model
+```{r datasets}
+train_ds <- triplet_text_dataset(paraphrases_train)
+valid_ds <- triplet_text_dataset(paraphrases_valid)
+```
 
-We're going to build a "triplet" model with a BERT pre-trained spine.
+The data is sampled for each torch epoch using a `dataloader`.
+
+```{r dataloader}
+batch_size <- 128
+train_dl <- torch::dataloader(train_ds, batch_size = batch_size, shuffle = TRUE)
+valid_dl <- torch::dataloader(valid_ds, batch_size = batch_size)
+```
+
+## Define the model
+
+We're going to build a "triplet" model with a BERT pre-trained spine (specifically "bert_tiny_uncased").
 We use the `make_and_load_bert` function to get a BERT module with pre-trained
 weights loaded.
+We use the final `[CLS]` token as the output, and then a dense layer after that to map into our paraphrase space.
 
-```{r}
-# This module defines the "spine" of the model. It's basically BERT, with
-# the final CLS token taken as the output, then a dense layer after that.
-
+```{r model-definition}
 # Using pre-trained weights to start.
 spine_with_pooling <- torch::nn_module(
-  "pooled",
-  initialize = function(model_name = "bert_base_uncased") {
-    # TODO: we should export this df.
-    config <- torchtransformers:::bert_configs
-    embedding_size <- config$embedding_size[config$model_name == model_name]
+  classname = "pooled_spine",
+  initialize = function(model_name = "bert_tiny_uncased") {
+    embedding_size <- torchtransformers::config_bert(
+      bert_model = model_name, 
+      parameter = "embedding_size"
+    ) 
     self$bert <- torchtransformers::make_and_load_bert(model_name)
-    # After pooled bert output, do a final dense layer.
-    self$linear <- torch::nn_linear(in_features = embedding_size, 
-                                    out_features = embedding_size)
+    # After pooled BERT output, do a final dense layer.
+    self$linear <- torch::nn_linear(
+      in_features = embedding_size, 
+      out_features = embedding_size
+    )
   },
-  forward = function(token_ids, token_type_ids) {
-    output <- self$bert(token_ids, token_type_ids)
+  forward = function(x) {
+    output <- self$bert(x$token_ids, x$token_type_ids)
     
-    # Take the output embeddings from last layer.
+    # Take the output embeddings from final BERT layer.
     output <- output$output_embeddings
     output <- output[[length(output)]]
-    # Take the [CLS] token embedding for "pooling".
-    output <- output[1, , ]
+    # Take the [CLS] token embedding for "pooling". The three dimensions are:
+    # example = batch_size, token = n_tokens, embeddings = defined by the model
+    # type.
+    output <- output[, 1, ]
     # Apply the last dense layer to the "pooled" output.
     output <- self$linear(output)
     return(output)
   }
 )
 
-# The model is just the same spine used for three inputs:
+# The model is that same spine used for three inputs:
 triplet_for_training <- torch::nn_module(
-  "triplet",
-  initialize = function(model_name = "bert_mini_uncased") {
+  classname = "triplet_text",
+  initialize = function(model_name = "bert_tiny_uncased") {
     # Share the same spine parameters between all three inputs.
     self$spine <- spine_with_pooling(model_name)
+    self$criterion <- nn_triplet_margin_loss()
   },
-  forward = function(anchor, positive, negative, tt) {
-    # For this particular dataset, all the token type id inputs are trivially
-    # the same, so we only need a single input for that.
-    v_anchor <- self$spine(anchor, tt)
-    v_positive <- self$spine(positive, tt)
-    v_negative <- self$spine(negative, tt)
+  loss = function(input, ...) {
+    # input contains anchor, positive, and negative, each of which is composed
+    # of token_ids and token_typeids.
+    embeddings <- lapply(input, self$spine)
+
+    loss <- self$criterion(
+      embeddings$anchor,
+      embeddings$positive,
+      embeddings$negative
+    )
     
-    return(list("anchor" = v_anchor,
-                "positive" = v_positive,
-                "negative" = v_negative))
+    # This returns a number.
+    # stop(as.numeric(loss$cpu()))
+    
+    # This says $ is invalid for atomic vectors.
+    # return(as.numeric(loss$cpu()))
+
+    # This says can't convert cuda tensor to R.
+    # return(as.numeric(loss))
+    
+    # This reports as NaN during the fit.
+    return(loss)
   }
 )
-
-# Now make the actual model:
-torch::torch_manual_seed(123456)
-model <- triplet_for_training("bert_small_uncased")
-model
-# An `nn_module` containing 28,763,648 parameters.
-# 
-# ── Modules ────────────────────────────────────────────────────────────────
-# • spine: <pooled> #28,763,648 parameters
 ```
+
+## Fit the model
+
+```{r fit}
+torch::torch_manual_seed(123456)
+# This doesn't work.
+fitted <- triplet_for_training %>% 
+  luz::setup(optimizer = torch::optim_adam) %>% 
+  luz::set_hparams(model_name = "bert_tiny_uncased") %>% 
+  fit(train_dl, epochs = 3, valid_data = valid_dl)
+```
+
+EVERYTHING BELOW HERE IS STILL VERY MUCH IN PROGRESS/BEING CONVERTED FROM AN OLD VERSION
 
 The output of the model will be three vectors, one for each input.
 
