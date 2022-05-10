@@ -61,7 +61,8 @@ tokenize_bert.character <- function(text,
                                     tokenizer = wordpiece::wordpiece_tokenize,
                                     vocab = wordpiece.data::wordpiece_vocab(),
                                     ...) {
-  # We 0-index to match python implementations.
+  # We 0-index to match python implementations. Later we add 1 across the board
+  # for {torch}, but at first we match the 0-indexed vocabulary.
   pad_index <- fastmatch::fmatch(pad_token, vocab) - 1L
   names(pad_index) <- pad_token
   cls_index <- fastmatch::fmatch(cls_token, vocab) - 1L
@@ -114,17 +115,16 @@ tokenize_bert.character <- function(text,
     ~c(.x, rep(pad_index, .y))
   )
 
-  # For this case, token_types are all 1L (there's only one sequence).
+  # For this case, token_types are all 1L (there's only one sequence). Use the
+  # same rows = n_tokens/cols = N rule that we inherit from
+  # torch::nn_multihead_attention
   token_types <- matrix(
     1L,
-    nrow = length(text),
-    ncol = n_tokens
+    nrow = n_tokens,
+    ncol = length(text)
   )
 
   if (simplify) {
-    # Since we're guaranteed that each token vector has length == n_tokens, we
-    # can simply flatten the list and convert to matrix. We transpose so each
-    # row is an example, rather than each column.
     return(
       list(
         token_ids_matrix = simplify_bert_token_list(
@@ -147,13 +147,15 @@ tokenize_bert.character <- function(text,
 #' @export
 simplify_bert_token_list <- function(token_ids_list,
                                      n_tokens = length(token_ids_list[[1]])) {
+  # Since we're guaranteed that each token vector has length == n_tokens, we can
+  # simply flatten the list and convert to matrix. We intenionally return a
+  # matrix with rows = n_tokens and columns = N to match the dimensions expected
+  # in torch::nn_multihead_attention
   return(
-    t(
-      matrix(
-        # Add 1 for torch!
-        unlist(token_ids_list) + 1L,
-        nrow = n_tokens
-      )
+    matrix(
+      # Add 1 for torch!
+      unlist(token_ids_list) + 1L,
+      nrow = n_tokens
     )
   )
 }

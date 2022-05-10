@@ -150,16 +150,16 @@ triplet_text_dataset <- torch::dataset(
     list(
       list(
         anchor = list(
-          token_ids = self$anchor[index, ],
-          token_type_ids = self$token_types[index, ]
+          token_ids = self$anchor[, index],
+          token_type_ids = self$token_types[, index]
         ), 
         positive = list(
-          token_ids = self$positive[index, ],
-          token_type_ids = self$token_types[index, ]
+          token_ids = self$positive[, index],
+          token_type_ids = self$token_types[, index]
         ), 
         negative = list(
-          token_ids = self$negative[index, ],
-          token_type_ids = self$token_types[index, ]
+          token_ids = self$negative[, index],
+          token_type_ids = self$token_types[, index]
         )
       ),
       list() # No target.
@@ -168,7 +168,7 @@ triplet_text_dataset <- torch::dataset(
   # The dataset also needs a method to determine the length of the entire
   # dataset.
   .length = function() {
-    dim(self$anchor)[[1]]
+    dim(self$anchor)[[2]]
   }
 )
 ```
@@ -183,7 +183,7 @@ valid_ds <- triplet_text_dataset(paraphrases_valid)
 The data is sampled for each torch epoch using a `dataloader`.
 
 ```{r dataloader}
-batch_size <- 128
+batch_size <- 256
 train_dl <- torch::dataloader(train_ds, batch_size = batch_size, shuffle = TRUE)
 valid_dl <- torch::dataloader(valid_ds, batch_size = batch_size)
 ```
@@ -200,11 +200,11 @@ We use the final `[CLS]` token as the output, and then a dense layer after that 
 spine_with_pooling <- torch::nn_module(
   classname = "pooled_spine",
   initialize = function(model_name = "bert_tiny_uncased") {
-    embedding_size <- torchtransformers::config_bert(
+    embedding_size <- config_bert(
       bert_model = model_name, 
       parameter = "embedding_size"
     ) 
-    self$bert <- torchtransformers::make_and_load_bert(model_name)
+    self$bert <- make_and_load_bert(model_name)
     # After pooled BERT output, do a final dense layer.
     self$linear <- torch::nn_linear(
       in_features = embedding_size, 
@@ -212,15 +212,21 @@ spine_with_pooling <- torch::nn_module(
     )
   },
   forward = function(x) {
-    output <- self$bert(x$token_ids, x$token_type_ids)
-    
+    # BERT is built on attention, which expects inputs to have dimensions of
+    # n_tokens by batch_size by embedding_size. Since our inputs are batch_size
+    # by n_tokens by embedding_size, we transpose those first two dimensions.
+    output <- self$bert(
+      torch::torch_transpose(x$token_ids, 1, 2), 
+      torch::torch_transpose(x$token_type_ids, 1, 2)
+    )
+
     # Take the output embeddings from final BERT layer.
     output <- output$output_embeddings
     output <- output[[length(output)]]
     # Take the [CLS] token embedding for "pooling". The three dimensions are:
-    # example = batch_size, token = n_tokens, embeddings = defined by the model
-    # type.
-    output <- output[, 1, ]
+    # token (length = n_tokens), example (length = batch_size), embeddings
+    # (length = defined by the model) type.
+    output <- output[1, , ]
     # Apply the last dense layer to the "pooled" output.
     output <- self$linear(output)
     return(output)
@@ -237,25 +243,13 @@ triplet_for_training <- torch::nn_module(
   },
   loss = function(input, ...) {
     # input contains anchor, positive, and negative, each of which is composed
-    # of token_ids and token_typeids.
+    # of token_ids and token_type_ids.
     embeddings <- lapply(input, self$spine)
-
     loss <- self$criterion(
       embeddings$anchor,
       embeddings$positive,
       embeddings$negative
     )
-    
-    # This returns a number.
-    # stop(as.numeric(loss$cpu()))
-    
-    # This says $ is invalid for atomic vectors.
-    # return(as.numeric(loss$cpu()))
-
-    # This says can't convert cuda tensor to R.
-    # return(as.numeric(loss))
-    
-    # This reports as NaN during the fit.
     return(loss)
   }
 )
@@ -265,7 +259,6 @@ triplet_for_training <- torch::nn_module(
 
 ```{r fit}
 torch::torch_manual_seed(123456)
-# This doesn't work.
 fitted <- triplet_for_training %>% 
   luz::setup(optimizer = torch::optim_adam) %>% 
   luz::set_hparams(model_name = "bert_tiny_uncased") %>% 
