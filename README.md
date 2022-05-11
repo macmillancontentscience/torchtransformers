@@ -3,8 +3,18 @@
 
 # torchtransformers
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 The goal of torchtransformers is to facilitate working with
 transformer-based models in R using torch.
+
+This package is under active development, and the API might change
+before we reach our first CRAN release. Please check the issues to see
+if anything we have planned will impact your use cases.
 
 ## Installation
 
