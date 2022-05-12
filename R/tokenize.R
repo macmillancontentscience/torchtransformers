@@ -1,4 +1,40 @@
+#' Prepare Text for a BERT Model
+#'
+#' To be used in a BERT-style model, text must be tokenized. In addition, text
+#' is optionally preceded by a \code{cls_token}, and segments are ended with a
+#' \code{sep_token}. Finally each example must be padded with a
+#' \code{pad_token}, or truncated if necessary (preserving the wrapper tokens).
+#' Many use cases use a matrix of tokens x examples, which can be extracted
+#' directly with the \code{simplify} argument.
+#'
+#' @param text Character or list of characters; the text to prepare. Right now
+#'   only character or lists of length-1 characters are supported, but we will
+#'   soon also allow the text to be provided as a list of length-N character
+#'   vectors (usually 1 or 2), which will be combined but separated with
+#'   \code{sep_token}.
+#' @param n_tokens Integer scalar; the number of tokens expected for each
+#'   example.
+#' @param simplify Logical scalar; whether to return the result as a list
+#'   (\code{FALSE}), or as a matrix. The matrix returned is currently
+#'   \code{n_tokens} rows by \code{length(text)} columns, but we plan to
+#'   transpose that in an upcoming change to the overall package API.
+#' @param pad_token Character scalar; the token to use for padding. Must be
+#'   present in the supplied vocabulary.
+#' @param cls_token Character scalar; the token to use at the start of each
+#'   example. Must be present in the supplied vocabulary, or \code{NULL}.
+#' @param sep_token Character scalar; the token to use at the end of each
+#'   segment within each example. Must be present in the supplied vocabulary, or
+#'   \code{NULL}.
+#' @param tokenizer The tokenizer function to use to break up the text. It must
+#'   have a \code{vocab} argument.
+#' @param vocab The vocabulary to use to tokenize the text.
+#' @param ... Additional arguments passed on to the tokenizer.
+#'
+#' @return A list of token indices, or a matrix.
 #' @export
+#'
+#' @examples
+#' tokenize_bert(c("A first example.", "Another one."))
 tokenize_bert <- function(text,
                           n_tokens = 64L,
                           simplify = FALSE,
@@ -127,10 +163,7 @@ tokenize_bert.character <- function(text,
   if (simplify) {
     return(
       list(
-        token_ids_matrix = simplify_bert_token_list(
-          token_ids_list = tokenized_text,
-          n_tokens = n_tokens
-        ),
+        token_ids_matrix = simplify_bert_token_list(tokenized_text),
         token_type_ids = token_types
       )
     )
@@ -144,17 +177,45 @@ tokenize_bert.character <- function(text,
   }
 }
 
+#' Simplify Token ID List to Matrix
+#'
+#' BERT-like models expect a matrix of tokens for each example. This function
+#' currently supplies a matrix with \code{n_tokens} rows and
+#' \code{length(token_ids_list)} columns, but we plan to transpose those in an
+#' upcoming change to this API.
+#'
+#' @param token_ids_list A list of integer vectors.
+#' @param for_torch Logical; if TRUE, add 1L to all token ids to convert from
+#'   the Python-based 0-indexed standard to the torch standard.
+#'
+#' @return A matrix of token ids.
 #' @export
-simplify_bert_token_list <- function(token_ids_list,
-                                     n_tokens = length(token_ids_list[[1]])) {
+#'
+#' @examples
+#' simplify_bert_token_list(
+#'   list(
+#'     1:5,
+#'     2:6,
+#'     3:7
+#'   )
+#' )
+simplify_bert_token_list <- function(token_ids_list, for_torch = TRUE) {
+  n_tokens = length(token_ids_list[[1]])
+
+  stopifnot(
+    all(lengths(token_ids_list) == n_tokens),
+    is.logical(for_torch),
+    length(for_torch) == 1
+  )
+
   # Since we're guaranteed that each token vector has length == n_tokens, we can
-  # simply flatten the list and convert to matrix. We intenionally return a
+  # simply flatten the list and convert to matrix. We intentionally return a
   # matrix with rows = n_tokens and columns = N to match the dimensions expected
   # in torch::nn_multihead_attention
   return(
     matrix(
       # Add 1 for torch!
-      unlist(token_ids_list) + 1L,
+      unlist(token_ids_list) + as.integer(for_torch),
       nrow = n_tokens
     )
   )

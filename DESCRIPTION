@@ -25,21 +25,22 @@ License: Apache License (>= 2)
 RoxygenNote: 7.1.2
 Imports:
     dlr (>= 1.0.0),
+    purrr,
     stringr (>= 1.4.0),
-    torch (>= 0.4.0)
+    torch (>= 0.4.0),
+    wordpiece (>= 2.1.3),
+    wordpiece.data (>= 2.0.0)
 Suggests: 
     coro (>= 1.0.1),
     dplyr,
     ggplot2,
     glue,
+    luz,
     tibble,
     testthat (>= 3.0.0),
     knitr,
     progress,
-    purrr,
     rmarkdown,
-    wordpiece,
-    wordpiece.data,
     zoo
 Config/testthat/edition: 3
 VignetteBuilder: knitr
