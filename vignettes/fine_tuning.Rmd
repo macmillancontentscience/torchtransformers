@@ -41,7 +41,7 @@ The training loss for the model will be the _difference_ between
 The loss is minimized during training, so the model learns to put the anchor closer to the positive example than to the negative example in embedding space.
 
 After training, the hope is that the model has learned to make useful representations for the input examples. 
-The model can then be used to generate embedding vectors for any input sentences.
+The model can then be used to generate sentence-level embedding vectors for any input sentences.
 
 
 ## Get the data
@@ -51,8 +51,9 @@ obtained [online](https://www.sbert.net/examples/training/paraphrases/README.htm
 We use the the `read_or_cache()` function from `{dlr}` to avoid repeatedly processing the same dataset.
 
 ```{r download}
-# dlr needs a processor function that takes the path to a temp file as its first
-# argument.
+# dlr uses a processor function that takes the path to a temp file as its first
+# argument. Here we get the data to the sort of point from which you might start
+# with your own text data.
 paraphrase_processor <- function(source_file) {
   return(
     jsonlite::stream_in(file(source_file)) %>% 
@@ -90,9 +91,6 @@ paraphrases$positive[[1]]
 
 paraphrases$negative[[1]]
 # [3] "A person is at a diner, ordering an omelette."
-
-# TODO: Consider doing the tokenizing as part of the original processing, so
-# it's done once and saved.
 ```
 
 We split this data into a training set and a validation set.
@@ -116,9 +114,9 @@ For ease-of-use we're passing in a data.frame and assuming it is named like our 
 triplet_text_dataset <- torch::dataset(
   name = "triplet_text_dataset",
   initialize = function(df, n_tokens = 64) {
-    # First we need to tokenize everything and add the BERT-style tokens to
-    # standardize the inputs. We simplify the token vectors to a matrix for each
-    # input.
+    # First we need to tokenize everything and add BERT [CLS], [SEP], and [PAD]
+    # tokens to standardize the inputs. We simplify the token vectors to a
+    # matrix for each input.
     anchor_tokenized <- tokenize_bert(
       text = df$anchor,
       n_tokens = n_tokens,
@@ -144,8 +142,7 @@ triplet_text_dataset <- torch::dataset(
     # data, so we'll just return one of them.
     self$token_types <- torch::torch_tensor(anchor_tokenized$token_type_ids)
   },
-  # The dataset needs to supply a method to fetch particular vectors within each
-  # tensor.
+  # We extract subsets of this data using an index.
   .getitem = function(index) {
     list(
       list(
@@ -174,6 +171,7 @@ triplet_text_dataset <- torch::dataset(
 ```
 
 We use the constructor to create a training dataset and a validation dataset.
+The dataset constructor performs the tokenization, so this step will be somewhat slow.
 
 ```{r datasets}
 train_ds <- triplet_text_dataset(paraphrases_train)
@@ -181,6 +179,7 @@ valid_ds <- triplet_text_dataset(paraphrases_valid)
 ```
 
 The data is sampled for each torch epoch using a `dataloader`.
+You may wish to change the `batch_size` depending on your available RAM.
 
 ```{r dataloader}
 batch_size <- 256
@@ -190,13 +189,12 @@ valid_dl <- torch::dataloader(valid_ds, batch_size = batch_size)
 
 ## Define the model
 
-We're going to build a "triplet" model with a BERT pre-trained spine (specifically "bert_tiny_uncased").
-We use the `make_and_load_bert` function to get a BERT module with pre-trained
+We're going to build a "triplet" model with a BERT pre-trained "spine" (specifically "bert_tiny_uncased").
+We use the `make_and_load_bert` function to create a BERT module with pre-trained
 weights loaded.
-We use the final `[CLS]` token as the output, and then a dense layer after that to map into our paraphrase space.
+We use the final `[CLS]` token as the output, and then a dense layer after that to map into our paraphrase embedding space.
 
-```{r model-definition}
-# Using pre-trained weights to start.
+```{r spine-definition}
 spine_with_pooling <- torch::nn_module(
   classname = "pooled_spine",
   initialize = function(model_name = "bert_tiny_uncased") {
@@ -212,29 +210,34 @@ spine_with_pooling <- torch::nn_module(
     )
   },
   forward = function(x) {
-    # BERT is built on attention, which expects inputs to have dimensions of
-    # n_tokens by batch_size by embedding_size. Since our inputs are batch_size
-    # by n_tokens by embedding_size, we transpose those first two dimensions.
+    # Our BERT implementation currently requires tensors with dimensions of
+    # n_tokens, batch_size, embedding_size. The batch_size is first in the
+    # dataloader, so we transpose the first two dimensions before sending them
+    # into BERT.
     output <- self$bert(
       torch::torch_transpose(x$token_ids, 1, 2), 
       torch::torch_transpose(x$token_type_ids, 1, 2)
     )
 
-    # Take the output embeddings from final BERT layer.
+    # Take the output embeddings from the final BERT layer.
     output <- output$output_embeddings
     output <- output[[length(output)]]
-    # Take the [CLS] token embedding for "pooling". The three dimensions are:
-    # token (length = n_tokens), example (length = batch_size), embeddings
-    # (length = defined by the model) type.
+    # Take the [CLS] token embedding (token 1 in each example) for pooling. The
+    # three dimensions are: token (length = n_tokens), example (length =
+    # batch_size), embeddings (length = defined by the model type).
     output <- output[1, , ]
-    # Apply the last dense layer to the "pooled" output.
+    # Apply the last dense layer to the pooled output.
     output <- self$linear(output)
     return(output)
   }
 )
+```
 
-# The model is that same spine used for three inputs:
-triplet_for_training <- torch::nn_module(
+The model is that same spine used for the three different inputs.
+We use `torch::nn_triplet_margin_loss` to measure the loss using the three outputs.
+
+```{r model-definition}
+triplet_text_model <- torch::nn_module(
   classname = "triplet_text",
   initialize = function(model_name = "bert_tiny_uncased") {
     # Share the same spine parameters between all three inputs.
@@ -257,290 +260,89 @@ triplet_for_training <- torch::nn_module(
 
 ## Fit the model
 
+We use `{luz}` to perform the actual model fitting.
+With these settings, this model gets about as good as it's going to get after 3 epochs.
+
 ```{r fit}
 torch::torch_manual_seed(123456)
-fitted <- triplet_for_training %>% 
+fitted <- triplet_text_model %>% 
   luz::setup(optimizer = torch::optim_adam) %>% 
   luz::set_hparams(model_name = "bert_tiny_uncased") %>% 
   fit(train_dl, epochs = 3, valid_data = valid_dl)
 ```
 
-EVERYTHING BELOW HERE IS STILL VERY MUCH IN PROGRESS/BEING CONVERTED FROM AN OLD VERSION
+After a single epoch of training, the loss on the validation set is about 0.22
 
-The output of the model will be three vectors, one for each input.
+## Using the model
 
-Note: BERT models (like the one used in the triplet model) require two inputs
-for each piece of input text. The second input identifies the "token type", and
-is used to allow BERT to distinguish between multiple segments within a single
-input sequence. For this particular model, all the inputs are single-segment,
-so the token type tensor will just be filled with ones.
+We'll use the weights from the spine of our model to map an input into embedding space.
 
-## Training
-
-
-For each epoch of training, we will calculate the loss on the validation set as 
-well.
-
-We use a learning rate schedule that "warms up" to a maximum, then gradually
-decreases.
-
-```{r}
-# The triplet margin loss is key to this whole process!
-loss_fun <- torch::nnf_triplet_margin_loss
-
-learning_rate <- 1e-4
-
-model$cuda() # Have to do this *before* creating optimizer!
-
-optimizer <- optim_adam(model$parameters, lr = learning_rate)
-
-epochs <- 3
-
-# Just to illustrate the process, use a learning rate scheduler.
-scheduler <- optimizer %>%
-  lr_one_cycle(max_lr = learning_rate,
-               epochs = epochs,
-               steps_per_epoch = length(train_dl),
-               pct_start = 0.2,
-               div_factor = 10,
-               final_div_factor = 1000)
-
-# Set up some empty vectors to keep track of things during training.
-losses <- c()
-learning_rates <- c()
-val_losses <- c()
-
-# Set the device for the input tensors.
-device <- "cuda"
-
-# Set up a slick progress bar!
-set_progress_bar <- function(total) {
-  progress_bar$new(
-    total = total, clear = FALSE, width = 75,
-    format = ":current/:total [:bar] - :elapsed - loss: :loss; lr: :lr"
-  )
-}
-
-# For reference, calculate loss on validation set once before doing any
-# training:
-model$eval()
-pb <- set_progress_bar(length(val_dl))
-this_epoch_val_losses <- c()
-pb$message("Run on validation set before training loop")
-coro::loop(for(batch in val_dl) {
-  with_no_grad({ # Important to make sure we don't fill up memory!
-    # For this particular dataset, all the token type id inputs are trivially
-    # the same, up to the batch size. Just construct the tt input here to
-    # simplify things.
-    tt <- torch_tensor(array(1L, dim = dim(batch[[1]])), device = device)
-    output <- model(batch[[1]]$to(device = device),
-                    batch[[2]]$to(device = device),
-                    batch[[3]]$to(device = device),
-                    tt
-    )
-  })
-  loss <- loss_fun(output$anchor, output$positive, output$negative)
-  loss_r <- as.numeric(loss$item())
-  val_losses <- c(val_losses, loss_r)
-  this_epoch_val_losses <- c(this_epoch_val_losses, loss_r)
-  pb$tick(tokens = list(loss = round(mean(this_epoch_val_losses), 4)))
-})
-  
-# Now do training loop.
-for(epoch in seq_len(epochs)) {
-  model$train() # Make sure the model is in training mode!
-  this_epoch_losses <- c()
-  this_epoch_val_losses <- c()
-
-  pb <- set_progress_bar(length(train_dl))
-  pb$message(glue::glue("Epoch {epoch}/{epochs}"))
-  coro::loop(for(batch in train_dl) {
-    optimizer$zero_grad()
-    # Construct tt input here.
-    tt <- torch_tensor(array(1L, dim = dim(batch[[1]])), device = device)
-    output <- model(batch[[1]]$to(device = device), # anchor
-                    batch[[2]]$to(device = device), # positive
-                    batch[[3]]$to(device = device), # negative
-                    tt 
-    )
-    
-    loss <- loss_fun(output$anchor, output$positive, output$negative)
-    loss$backward()
-    optimizer$step()
-    scheduler$step() # This needs to come after the optimizer step.
-    lr <- scheduler$get_lr() # Keep track of the current learning rate.
-
-    loss_r <- as.numeric(loss$item())
-    losses <- c(losses, loss_r)
-    learning_rates <- c(learning_rates, lr)
-    this_epoch_losses <- c(this_epoch_losses, loss_r)
-
-    pb$tick(tokens = list(loss = round(mean(this_epoch_losses), 4), 
-                          lr = round(lr, 6)))
-  })
-  
-   # For each epoch, calculate loss on validation set.
-  model$eval()
-
-  pb <- set_progress_bar(length(val_dl))
-  pb$message(glue::glue("Validation for epoch {epoch}/{epochs}"))
-
-  coro::loop(for(batch in val_dl) {
-    with_no_grad({ # Important to make sure we don't fill up memory!
-      tt <- torch_tensor(array(1L, dim = dim(batch[[1]])), device = device)
-      output <- model(batch[[1]]$to(device = device),
-                      batch[[2]]$to(device = device),
-                      batch[[3]]$to(device = device),
-                      tt
-      )
-    })
-    loss <- loss_fun(output$anchor, output$positive, output$negative)
-    
-    loss_r <- as.numeric(loss$item())
-    val_losses <- c(val_losses, loss_r)
-    this_epoch_val_losses <- c(this_epoch_val_losses, loss_r)
-    pb$tick(tokens = list(loss = round(mean(this_epoch_val_losses), 4)))
-  })
-}
-
+```{r extract-weights}
+model_weights <- fitted$model$state_dict()
 ```
 
-Let's save the trained model:
+We define a simpler model that takes a single type of input, and outputs sentence vectors to map our inputs into our paraphrase embedding space.
+This model uses the same parameters as the triplet model, but with a single call to the spine.
 
-```{r}
-# We will also load these weights into a "vectorizer" model later.
-model_weights <- model$state_dict()
-torch::torch_save(model_weights, "triplet_model_weights")
-```
-
-It's interesting to look at how the loss changes over the training process.
-
-```{r}
-# Here's a handy function for plotting the losses.
-
-plot_losses <- function(loss_vector, smoothing = 1000, title = "") {
-  loss_df <- dplyr::tibble(loss_vector) %>% 
-    dplyr::mutate(row = row_number(),
-                  roll = zoo::rollmeanr(loss_vector, k = smoothing, fill = NA)) 
-    
-  loss_df %>% 
-    ggplot2::ggplot(aes(x = row, y = loss_vector)) +
-    ggplot2::geom_jitter(alpha = 0.01, width = 0, height = 0.01) +
-    ggplot2::geom_line(aes(x = row, y = roll), color = "blue", size = 1) +
-    coord_cartesian(ylim = c(0, 1.2)) +
-    xlab("batch") +
-    ylab("loss") +
-    ggtitle(title)
-}
-
-# There were 2500 batches in the validation set. Look at the last round of
-# validation:
-mean(tail(val_losses, 2500)) # 0.164
-# A loss below 1 indicates that anchor was closer to positive than to negative.
-# What fraction of validation set had loss < 1?
-mean(tail(val_losses, 2500) < 1) # 0.94
-
-# Plot the training and validation loss:
-plot_losses(losses, 150, "training")
-plot_losses(val_losses, 2500, "validation set")
-```
-
-After three epochs of training, the loss on the validation set is about 0.16,
-with 94% of validation batches having a loss less than 1.0.
-
-![](training_loss.png)
-![](validation_loss.png)
-
-For reference, here's how the learning rate changed during training:
-
-```{r}
-plot(learning_rates)
-```
-
-![](learning_rates.png)
-
-## Evaluate the results
-
-Training is just the first step.
-
-### Populating the vector space
-
-We can use the trained model to generate embedding vectors.
-
-```{r}
-# Define a new model to vectorize a single input.
-# This model has the same parameters as the triplet model, but only takes a 
-# single text input.
-
-# The model is just the same spine used for three inputs:
+```{r vectorizer}
+# The vectorizer model is the same spine that we used for the three inputs. We
+# wrap it in a larger constructor so the weight names line up for easier loading.
 vectorizer <- torch::nn_module(
   "vectorizer",
-  initialize = function(model_name = "bert_mini_uncased") {
+  initialize = function(model_name = "bert_tiny_uncased") {
     self$spine <- spine_with_pooling(model_name)
   },
-  forward = function(input, tt) {
-    v <- self$spine(input, tt)
-    return(v)
+  forward = function(input) {
+    return(self$spine(input))
   }
 )
 
-vectorizer_model <- vectorizer("bert_small_uncased")
+vectorizer_model <- vectorizer()
 
+# Load our trained weights into this model.
 vectorizer_model$load_state_dict(model_weights)
-vectorizer_model$cuda()
+```
+
+We can use that model to map all of the anchor phrases from our validation set into an embedding space.
+
+```{r paraphrase-space}
 vectorizer_model$eval()
-# Pick a random row from the validation data:
-set.seed(123456)
-test_case <- sample(data_tokenized[val_indices], 1)[[1]]
 
-# Vectorize each sequence.
-n_tokens <- length(test_case[[1]])
-device <- "cuda"
-# We have to make sure the input is integers, and then use that to define an
-# array so that there's an explicit batch dimension, and *then* convert to a
-# torch tensor.
-anchor <- torch::torch_tensor(array(as.integer(test_case[[1]]), 
-                                    dim = c(n_tokens, 1L)), device = device)
-positive <- torch::torch_tensor(array(as.integer(test_case[[2]]), 
-                                      dim = c(n_tokens, 1L)), device = device)
-negative <- torch::torch_tensor(array(as.integer(test_case[[3]]), 
-                                      dim = c(n_tokens, 1L)), device = device)
-# Use the same tt for all inputs...
-tt <- torch_tensor(array(1L, dim = dim(anchor)), device = device)
-
-# Make the vectors!
-# Convert them to cpu, then to R data type.
-anchor_v <- torch::as_array(vectorizer_model(anchor, tt)$to(device = "cpu"))
-positive_v <- torch::as_array(vectorizer_model(positive, tt)$to(device = "cpu"))
-negative_v <- torch::as_array(vectorizer_model(negative, tt)$to(device = "cpu"))
-
+# We have to transpose the inputs due to the inconsistent shape convention. We
+# hope to simplify this code soon!
+paraphrase_space <- vectorizer_model(
+  list(
+    token_ids = torch::torch_transpose(valid_ds$anchor, 1, 2), 
+    token_type_ids = torch::torch_transpose(valid_ds$token_types, 1, 2)
+  )
+)
 ```
 
-### Comparing vectors
+A given positive example should, in theory, be closest to its associated anchor in that space.
 
-The usual way to compare vectors in a high-dimensional embedding space is to
-calculate the cosine similarity, which is basically the dot product after
-normalizing to unit vectors.
+```{r positive-in-space}
+# Map some of the positive examples into that same embedding space.
+positives_in_space <- vectorizer_model(
+  list(
+    token_ids = torch::torch_transpose(valid_ds$positive, 1, 2)[1:100, ],
+    token_type_ids = torch::torch_transpose(valid_ds$token_types, 1, 2)[1:100, ]
+  )
+)
 
-```{r}
-# Let's make our own function to compute cosine similarity.
-cosine_sim <- function(v1, v2) {
-  v1 <- as.vector(v1)
-  v2 <- as.vector(v2)
-  
-  norm1 <- sqrt(sum(v1^2))
-  norm2 <- sqrt(sum(v2^2))
+# Create a simple pairwise distance calculator.
+pair_dist <- torch::nn_pairwise_distance()
 
-  dot <- sum(v1 * v2)
-  return(dot/(norm1 * norm2))
-}
+positive_id <- 1
+distances <- pair_dist(positives_in_space[positive_id, ], paraphrase_space)
+closest_match <- which(
+  torch::as_array(distances) == min(torch::as_array(distances))
+)
 
-# The cosine similarity of a vector with itself is identically 1.
-cosine_sim(anchor_v, anchor_v)
-# The closer cosine similarity is to 1, the closer the two vectors are.
-cosine_sim(anchor_v, positive_v) # 0.79
-cosine_sim(anchor_v, negative_v) # 0.48
+paraphrases$positive[[positive_id]]
+#> [1] "A person is outdoors, on a horse."
+
+paraphrases$anchor[[closest_match]]
+#> [1] "Man serving a customer from a vegetable stand."
 ```
 
-In this case, the positive example is closer to the anchor than the negative
-example is, as it was trained to be.
+Further refinement of this model would be necessary to make the results actually useful, but the general approach can lead to models that are useful for quickly matching a new piece of text to a large collection of known text.
