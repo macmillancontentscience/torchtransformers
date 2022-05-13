@@ -18,6 +18,9 @@
 #'   (\code{FALSE}), or as a matrix. The matrix returned is currently
 #'   \code{n_tokens} rows by \code{length(text)} columns, but we plan to
 #'   transpose that in an upcoming change to the overall package API.
+#' @param increment_index Logical; if TRUE, add 1L to all token ids to convert
+#'   from the Python-inspired 0-indexed standard to the torch 1-indexed
+#'   standard.
 #' @param pad_token Character scalar; the token to use for padding. Must be
 #'   present in the supplied vocabulary.
 #' @param cls_token Character scalar; the token to use at the start of each
@@ -27,17 +30,20 @@
 #'   \code{NULL}.
 #' @param tokenizer The tokenizer function to use to break up the text. It must
 #'   have a \code{vocab} argument.
-#' @param vocab The vocabulary to use to tokenize the text.
+#' @param vocab The vocabulary to use to tokenize the text. This vocabulary must
+#'   include the \code{pad_token, cls_token, and sep_token}.
 #' @param ... Additional arguments passed on to the tokenizer.
 #'
-#' @return A list of token indices, or a matrix.
+#' @return A list containing a list or matrix of token ids, and a list or matrix
+#'   of token type ids.
 #' @export
 #'
 #' @examples
 #' tokenize_bert(c("A first example.", "Another one."))
 tokenize_bert <- function(text,
                           n_tokens = 64L,
-                          simplify = FALSE,
+                          simplify = TRUE,
+                          increment_index = TRUE,
                           pad_token = "[PAD]",
                           cls_token = "[CLS]",
                           sep_token = "[SEP]",
@@ -50,7 +56,8 @@ tokenize_bert <- function(text,
 #' @export
 tokenize_bert.default <- function(text,
                                   n_tokens = 64L,
-                                  simplify = FALSE,
+                                  simplify = TRUE,
+                                  increment_index = TRUE,
                                   pad_token = "[PAD]",
                                   cls_token = "[CLS]",
                                   sep_token = "[SEP]",
@@ -63,7 +70,8 @@ tokenize_bert.default <- function(text,
 #' @export
 tokenize_bert.list <- function(text,
                                n_tokens = 64L,
-                               simplify = FALSE,
+                               simplify = TRUE,
+                               increment_index = TRUE,
                                pad_token = "[PAD]",
                                cls_token = "[CLS]",
                                sep_token = "[SEP]",
@@ -85,18 +93,25 @@ tokenize_bert.list <- function(text,
   } else {
     stop("We have not yet implemented this for multiple sequences.")
   }
+
+  # TODO when we actually implement this: Technically we should error if any of
+  # them have more segments than n_tokens.
 }
 
 #' @export
 tokenize_bert.character <- function(text,
                                     n_tokens = 64L,
-                                    simplify = FALSE,
+                                    simplify = TRUE,
+                                    increment_index = TRUE,
                                     pad_token = "[PAD]",
                                     cls_token = "[CLS]",
                                     sep_token = "[SEP]",
                                     tokenizer = wordpiece::wordpiece_tokenize,
                                     vocab = wordpiece.data::wordpiece_vocab(),
                                     ...) {
+  # We need to have room for at least 1 token from each sequence.
+  stopifnot(n_tokens > length(sep_token) + length(cls_token))
+
   # We 0-index to match python implementations. Later we add 1 across the board
   # for {torch}, but at first we match the 0-indexed vocabulary.
   pad_index <- fastmatch::fmatch(pad_token, vocab) - 1L
@@ -125,22 +140,24 @@ tokenize_bert.character <- function(text,
   # Add cls_index to the start of each entry.
   tokenized_text <- purrr::map(tokenized_text, ~c(cls_index, .x))
 
-  sep_length <- length(sep_index) * lengths(text)
-  length_without_seps <- n_tokens - sep_length
-  # TODO: Technically we should error if any of them have more sequences than
-  # n_tokens.
+  # Note: The length here is to allow this to still work when sep_index is NULL.
+  # Since this method is for character vectors, everything has the same number
+  # of SEP tokens, so we don't need to produce this as a vector. It will be
+  # different for lists.
+  length_without_seps <- n_tokens - length(sep_index)
+
   to_truncate <- lengths(tokenized_text) > length_without_seps
   if (any(to_truncate)) {
-    # Truncate the ones that don't have room for sep.
-    tokenized_text[to_truncate] <- purrr::map2(
+    # Truncate the ones that don't have room for sep. Note: This ONLY works for
+    # single-segment sequences.
+    tokenized_text[to_truncate] <- purrr::map(
       tokenized_text[to_truncate],
-      length_without_seps[to_truncate],
-      ~.x[1:.y]
+      ~.x[1:length_without_seps]
     )
   }
 
-  # Add sep to the end of each sequence.
-  # Only implemented for single sequence right now.
+  # Add sep to the end of each segment.
+  # Only implemented for single segment right now.
   tokenized_text <- purrr::map(tokenized_text, ~c(.x, sep_index))
 
   # Add padding to short sequences.
@@ -151,26 +168,52 @@ tokenize_bert.character <- function(text,
     ~c(.x, rep(pad_index, .y))
   )
 
-  # For this case, token_types are all 1L (there's only one sequence). Use the
-  # same rows = n_tokens/cols = N rule that we inherit from
-  # torch::nn_multihead_attention
-  token_types <- matrix(
-    1L,
-    nrow = n_tokens,
-    ncol = length(text)
+  # For this case, token_types are all 1L (there's only one sequence).
+  token_types <- purrr::map(
+    tokenized_text,
+    ~rep(1L, length(.x))
   )
+
+  # The return process is the same from here on out regardless of which method
+  # was used, so we call a function to deal with the remaining bits.
+  return(
+    .finalize_bert_tokens(
+      tokenized_text = tokenized_text,
+      token_types = token_types,
+      increment_index = increment_index,
+      simplify = simplify
+    )
+  )
+
+}
+
+#' Clean and Return BERT Tokens
+#'
+#' @param tokenized_text A list of integer vectors of token ids.
+#' @param token_types A list of integer vectors indicating which segment tokens
+#'   belong to.
+#' @inherit tokenize_bert return params
+#' @keywords internal
+.finalize_bert_tokens <- function(tokenized_text,
+                                  token_types,
+                                  increment_index,
+                                  simplify) {
+  # Add 1 when necessary.
+  if (increment_index) {
+    tokenized_text <- increment_list_index(tokenized_text)
+  }
 
   if (simplify) {
     return(
       list(
-        token_ids_matrix = simplify_bert_token_list(tokenized_text),
-        token_type_ids = token_types
+        token_ids = simplify_bert_token_list(tokenized_text),
+        token_type_ids = simplify_bert_token_list(token_types)
       )
     )
   } else {
     return(
       list(
-        token_ids_list = tokenized_text,
+        token_ids = tokenized_text,
         token_type_ids = token_types
       )
     )
@@ -181,12 +224,11 @@ tokenize_bert.character <- function(text,
 #'
 #' BERT-like models expect a matrix of tokens for each example. This function
 #' currently supplies a matrix with \code{n_tokens} rows and
-#' \code{length(token_ids_list)} columns, but we plan to transpose those in an
+#' \code{length(list_of_integers)} columns, but we plan to transpose those in an
 #' upcoming change to this API.
 #'
-#' @param token_ids_list A list of integer vectors.
-#' @param for_torch Logical; if TRUE, add 1L to all token ids to convert from
-#'   the Python-based 0-indexed standard to the torch standard.
+#' @param list_of_integers A list of integer vectors. Each integer should have
+#'   the same length.
 #'
 #' @return A matrix of token ids.
 #' @export
@@ -199,13 +241,15 @@ tokenize_bert.character <- function(text,
 #'     3:7
 #'   )
 #' )
-simplify_bert_token_list <- function(token_ids_list, for_torch = TRUE) {
-  n_tokens = length(token_ids_list[[1]])
+simplify_bert_token_list <- function(list_of_integers) {
+  stopifnot(
+    is.list(list_of_integers),
+    purrr::every(list_of_integers, is.integer)
+  )
+  n_tokens = length(list_of_integers[[1]])
 
   stopifnot(
-    all(lengths(token_ids_list) == n_tokens),
-    is.logical(for_torch),
-    length(for_torch) == 1
+    all(lengths(list_of_integers) == n_tokens)
   )
 
   # Since we're guaranteed that each token vector has length == n_tokens, we can
@@ -214,9 +258,41 @@ simplify_bert_token_list <- function(token_ids_list, for_torch = TRUE) {
   # in torch::nn_multihead_attention
   return(
     matrix(
-      # Add 1 for torch!
-      unlist(token_ids_list) + as.integer(for_torch),
+      unlist(list_of_integers),
       nrow = n_tokens
+    )
+  )
+}
+
+#' Convert from Python Standard to torch
+#'
+#' The torch R package uses the R standard of starting counts at 1. Many
+#' tokenizers use the Python standard of starting counts at 0. This function
+#' converts a list of token ids provided by such a tokenizer to torch-friendly
+#' values (by adding 1 to each id).
+#'
+#' @inheritParams simplify_bert_token_list
+#'
+#' @return The list of integers, with 1 added to each integer.
+#' @export
+#'
+#' @examples
+#' increment_list_index(
+#'   list(
+#'     1:5,
+#'     2:6,
+#'     3:7
+#'   )
+#' )
+increment_list_index <- function(list_of_integers) {
+  stopifnot(
+    is.list(list_of_integers),
+    purrr::every(list_of_integers, is.integer)
+  )
+  return(
+    purrr::map(
+      list_of_integers,
+      ~.x + 1L
     )
   )
 }

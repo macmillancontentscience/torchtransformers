@@ -4,13 +4,11 @@
 \alias{simplify_bert_token_list}
 \title{Simplify Token ID List to Matrix}
 \usage{
-simplify_bert_token_list(token_ids_list, for_torch = TRUE)
+simplify_bert_token_list(list_of_integers)
 }
 \arguments{
-\item{token_ids_list}{A list of integer vectors.}
-
-\item{for_torch}{Logical; if TRUE, add 1L to all token ids to convert from
-the Python-based 0-indexed standard to the torch standard.}
+\item{list_of_integers}{A list of integer vectors. Each integer should have
+the same length.}
 }
 \value{
 A matrix of token ids.
@@ -18,7 +16,7 @@ A matrix of token ids.
 \description{
 BERT-like models expect a matrix of tokens for each example. This function
 currently supplies a matrix with \code{n_tokens} rows and
-\code{length(token_ids_list)} columns, but we plan to transpose those in an
+\code{length(list_of_integers)} columns, but we plan to transpose those in an
 upcoming change to this API.
 }
 \examples{

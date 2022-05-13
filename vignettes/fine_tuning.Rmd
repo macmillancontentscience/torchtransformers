@@ -114,29 +114,24 @@ For ease-of-use we're passing in a data.frame and assuming it is named like our 
 triplet_text_dataset <- torch::dataset(
   name = "triplet_text_dataset",
   initialize = function(df, n_tokens = 64) {
-    # First we need to tokenize everything and add BERT [CLS], [SEP], and [PAD]
-    # tokens to standardize the inputs. We simplify the token vectors to a
-    # matrix for each input.
+    # First we need to tokenize everything in the style required for BERT.
     anchor_tokenized <- tokenize_bert(
       text = df$anchor,
-      n_tokens = n_tokens,
-      simplify = TRUE
+      n_tokens = n_tokens
     )
     positive_tokenized <- tokenize_bert(
       text = df$positive,
-      n_tokens = n_tokens,
-      simplify = TRUE
+      n_tokens = n_tokens
     )
     negative_tokenized <- tokenize_bert(
       text = df$negative,
-      n_tokens = n_tokens,
-      simplify = TRUE
+      n_tokens = n_tokens
     )
     
     # We supply those matrices as tensors.
-    self$anchor <- torch::torch_tensor(anchor_tokenized$token_ids_matrix)
-    self$positive <- torch::torch_tensor(positive_tokenized$token_ids_matrix)
-    self$negative <- torch::torch_tensor(negative_tokenized$token_ids_matrix)
+    self$anchor <- torch::torch_tensor(anchor_tokenized$token_ids)
+    self$positive <- torch::torch_tensor(positive_tokenized$token_ids)
+    self$negative <- torch::torch_tensor(negative_tokenized$token_ids)
     
     # For this model, the token_types matrix is the same for all three types of
     # data, so we'll just return one of them.

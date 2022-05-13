@@ -7,7 +7,8 @@
 tokenize_bert(
   text,
   n_tokens = 64L,
-  simplify = FALSE,
+  simplify = TRUE,
+  increment_index = TRUE,
   pad_token = "[PAD]",
   cls_token = "[CLS]",
   sep_token = "[SEP]",
@@ -31,6 +32,10 @@ example.}
 \code{n_tokens} rows by \code{length(text)} columns, but we plan to
 transpose that in an upcoming change to the overall package API.}
 
+\item{increment_index}{Logical; if TRUE, add 1L to all token ids to convert
+from the Python-inspired 0-indexed standard to the torch 1-indexed
+standard.}
+
 \item{pad_token}{Character scalar; the token to use for padding. Must be
 present in the supplied vocabulary.}
 
@@ -44,12 +49,14 @@ segment within each example. Must be present in the supplied vocabulary, or
 \item{tokenizer}{The tokenizer function to use to break up the text. It must
 have a \code{vocab} argument.}
 
-\item{vocab}{The vocabulary to use to tokenize the text.}
+\item{vocab}{The vocabulary to use to tokenize the text. This vocabulary must
+include the \code{pad_token, cls_token, and sep_token}.}
 
 \item{...}{Additional arguments passed on to the tokenizer.}
 }
 \value{
-A list of token indices, or a matrix.
+A list containing a list or matrix of token ids, and a list or matrix
+  of token type ids.
 }
 \description{
 To be used in a BERT-style model, text must be tokenized. In addition, text
