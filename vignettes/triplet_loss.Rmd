@@ -1,8 +1,8 @@
 ---
-title: "Fine Tuning Example"
+title: "Triplet Loss"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Fine Tuning Example}
+  %\VignetteIndexEntry{Triplet Loss}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
