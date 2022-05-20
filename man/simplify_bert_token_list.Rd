@@ -11,13 +11,13 @@ simplify_bert_token_list(list_of_integers)
 the same length.}
 }
 \value{
-A matrix of token ids.
+A matrix of token ids. Rows are text sequences, and columns are
+  tokens.
 }
 \description{
 BERT-like models expect a matrix of tokens for each example. This function
-currently supplies a matrix with \code{n_tokens} rows and
-\code{length(list_of_integers)} columns, but we plan to transpose those in an
-upcoming change to this API.
+converts a list of equal-length integer vectors (such as a padded list of
+tokens) into such a matrix.
 }
 \examples{
 simplify_bert_token_list(
