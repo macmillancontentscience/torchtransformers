@@ -7,6 +7,22 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- 
+Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -26,7 +42,6 @@ library(jsonlite)
 library(rsample)
 library(wordpiece)
 library(wordpiece.data)
-library(ggplot2)
 ```
 
 This vignette will walk through the process of training a "triplet" model to 
@@ -48,7 +63,7 @@ The model can then be used to generate sentence-level embedding vectors for any 
 
 The data we will use for this vignette is derived from NLI datasets, and can be
 obtained [online](https://www.sbert.net/examples/training/paraphrases/README.html#datasets).
-We use the the `read_or_cache()` function from `{dlr}` to avoid repeatedly processing the same dataset.
+We use the `read_or_cache()` function from `{dlr}` to avoid repeatedly processing the same dataset.
 
 ```{r download}
 # dlr uses a processor function that takes the path to a temp file as its first
@@ -142,16 +157,16 @@ triplet_text_dataset <- torch::dataset(
     list(
       list(
         anchor = list(
-          token_ids = self$anchor[, index],
-          token_type_ids = self$token_types[, index]
+          token_ids = self$anchor[index, ],
+          token_type_ids = self$token_types[index, ]
         ), 
         positive = list(
-          token_ids = self$positive[, index],
-          token_type_ids = self$token_types[, index]
+          token_ids = self$positive[index, ],
+          token_type_ids = self$token_types[index, ]
         ), 
         negative = list(
-          token_ids = self$negative[, index],
-          token_type_ids = self$token_types[, index]
+          token_ids = self$negative[index, ],
+          token_type_ids = self$token_types[index, ]
         )
       ),
       list() # No target.
@@ -160,7 +175,7 @@ triplet_text_dataset <- torch::dataset(
   # The dataset also needs a method to determine the length of the entire
   # dataset.
   .length = function() {
-    dim(self$anchor)[[2]]
+    dim(self$anchor)[[1]]
   }
 )
 ```
@@ -205,22 +220,18 @@ spine_with_pooling <- torch::nn_module(
     )
   },
   forward = function(x) {
-    # Our BERT implementation currently requires tensors with dimensions of
-    # n_tokens, batch_size, embedding_size. The batch_size is first in the
-    # dataloader, so we transpose the first two dimensions before sending them
-    # into BERT.
     output <- self$bert(
-      torch::torch_transpose(x$token_ids, 1, 2), 
-      torch::torch_transpose(x$token_type_ids, 1, 2)
+      x$token_ids, 
+      x$token_type_ids
     )
 
     # Take the output embeddings from the final BERT layer.
     output <- output$output_embeddings
     output <- output[[length(output)]]
     # Take the [CLS] token embedding (token 1 in each example) for pooling. The
-    # three dimensions are: token (length = n_tokens), example (length =
-    # batch_size), embeddings (length = defined by the model type).
-    output <- output[1, , ]
+    # three dimensions are: example (length = batch_size), token (length =
+    # n_tokens), embeddings (length = defined by the model type).
+    output <- output[ , 1, ]
     # Apply the last dense layer to the pooled output.
     output <- self$linear(output)
     return(output)
@@ -303,12 +314,10 @@ We can use that model to map all of the anchor phrases from our validation set i
 ```{r paraphrase-space}
 vectorizer_model$eval()
 
-# We have to transpose the inputs due to the inconsistent shape convention. We
-# hope to simplify this code soon!
 paraphrase_space <- vectorizer_model(
   list(
-    token_ids = torch::torch_transpose(valid_ds$anchor, 1, 2), 
-    token_type_ids = torch::torch_transpose(valid_ds$token_types, 1, 2)
+    token_ids = valid_ds$anchor, 
+    token_type_ids = valid_ds$token_types
   )
 )
 ```
@@ -319,8 +328,8 @@ A given positive example should, in theory, be closest to its associated anchor 
 # Map some of the positive examples into that same embedding space.
 positives_in_space <- vectorizer_model(
   list(
-    token_ids = torch::torch_transpose(valid_ds$positive, 1, 2)[1:100, ],
-    token_type_ids = torch::torch_transpose(valid_ds$token_types, 1, 2)[1:100, ]
+    token_ids = valid_ds$positive[1:100, ],
+    token_type_ids = valid_ds$token_types[1:100, ]
   )
 )
 
