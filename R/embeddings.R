@@ -34,7 +34,7 @@
 #'
 #'   Output:
 #'
-#'   - \eqn{(max_position_embeddings, *, embedding_size)}
+#'   - \eqn{(*, max_position_embeddings, embedding_size)}
 #'
 #' @examples
 #' emb_size <- 3L
@@ -106,14 +106,14 @@ position_embedding <- torch::nn_module(
 #'
 #'   Inputs:
 #'
-#'   - token_ids: \eqn{(sequence_length, *)}
+#'   - token_ids: \eqn{(*, sequence_length)}
 #'
-#'   - token_type_ids: \eqn{(sequence_length, *)}
+#'   - token_type_ids: \eqn{(*, sequence_length)}
 #'
 #'
 #'   Output:
 #'
-#'   - \eqn{(sequence_length, *, embedding_size)}
+#'   - \eqn{(*, sequence_length, embedding_size)}
 #'
 #' @examples
 #' emb_size <- 3L
@@ -122,9 +122,9 @@ position_embedding <- torch::nn_module(
 #' n_inputs <- 2L
 #' # get random "ids" for input
 #' t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
-#'   nrow = mpe, ncol = n_inputs
+#'   nrow = n_inputs, ncol = mpe
 #' )
-#' ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
+#' ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = n_inputs, ncol = mpe)
 #'
 #' model <- embeddings_bert(
 #'   embedding_size = emb_size,
@@ -166,14 +166,13 @@ embeddings_bert <- torch::nn_module(
     self$dropout <- torch::nn_dropout(p = hidden_dropout)
   },
   forward = function(token_ids, token_type_ids) {
-    # If input is batched, it has an extra dimension. Deal with that.
     token_shape <- token_ids$shape
     token_type_shape <- token_type_ids$shape
 
     # number of tokens in input is always the last dimension (which might be the
     # only dimension if the batch d is dropped). I think this is actually
-    # over-engineered now but this way we protect against a bug we didn't
-    # actually have.
+    # over-engineered now but this way we protect against accidentally calling a
+    # non-existant dimension.
     input_length <- token_shape[[length(token_shape)]]
 
     # ...should match!

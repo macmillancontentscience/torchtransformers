@@ -29,7 +29,7 @@ weights.
 
   Output:
 
-  - \eqn{(max_position_embeddings, *, embedding_size)}
+  - \eqn{(*, max_position_embeddings, embedding_size)}
 }
 
 \examples{

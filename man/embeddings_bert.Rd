@@ -39,14 +39,14 @@ With `sequence_length` <= `max_position_embeddings`:
 
   Inputs:
 
-  - token_ids: \eqn{(sequence_length, *)}
+  - token_ids: \eqn{(*, sequence_length)}
 
-  - token_type_ids: \eqn{(sequence_length, *)}
+  - token_type_ids: \eqn{(*, sequence_length)}
 
 
   Output:
 
-  - \eqn{(sequence_length, *, embedding_size)}
+  - \eqn{(*, sequence_length, embedding_size)}
 }
 
 \examples{
@@ -56,9 +56,9 @@ vs <- 7L
 n_inputs <- 2L
 # get random "ids" for input
 t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
-  nrow = mpe, ncol = n_inputs
+  nrow = n_inputs, ncol = mpe
 )
-ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
+ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = n_inputs, ncol = mpe)
 
 model <- embeddings_bert(
   embedding_size = emb_size,

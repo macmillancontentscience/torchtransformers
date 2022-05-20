@@ -26,13 +26,13 @@
 #'
 #' Inputs:
 #'
-#' - input: \eqn{(input_size, *)}
+#' - input: \eqn{(*, input_size)}
 #'
-#' - residual: \eqn{(output_size, *)}
+#' - residual: \eqn{(*, output_size)}
 #'
 #' Output:
 #'
-#' - \eqn{(output_size, *)}
+#' - \eqn{(*, output_size)}
 #'
 #' @examples
 #' in_size <- 4L
