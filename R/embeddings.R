@@ -84,7 +84,7 @@ position_embedding <- torch::nn_module(
 
     # We'll need to broadcast the embeddings to every example in the batch, so
     # unsqueeze the batch dimension.
-    return(pe$unsqueeze(2))
+    return(pe$unsqueeze(1))
   }
 )
 
@@ -166,9 +166,22 @@ embeddings_bert <- torch::nn_module(
     self$dropout <- torch::nn_dropout(p = hidden_dropout)
   },
   forward = function(token_ids, token_type_ids) {
-    input_length <- token_ids$shape[[1]] # number of tokens in input...
-    input_length2 <- token_type_ids$shape[[1]] # ...should match!
-    input_length3 <- self$position_embeddings$weight$shape[[1]] # at most.
+    # If input is batched, it has an extra dimension. Deal with that.
+    token_shape <- token_ids$shape
+    token_type_shape <- token_type_ids$shape
+
+    # number of tokens in input is always the last dimension (which might be the
+    # only dimension if the batch d is dropped). I think this is actually
+    # over-engineered now but this way we protect against a bug we didn't
+    # actually have.
+    input_length <- token_shape[[length(token_shape)]]
+
+    # ...should match!
+    input_length2 <- token_type_shape[[length(token_type_shape)]]
+
+    # at most. This is the max_position_embeddings, ie the longest allowed
+    # sequence.
+    input_length3 <- self$position_embeddings$weight$shape[[1]]
 
     if (input_length != input_length2) {
       stop("Shape of token_ids should match shape of token_type_ids.")

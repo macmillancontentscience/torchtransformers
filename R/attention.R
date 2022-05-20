@@ -66,7 +66,8 @@ attention_bert <- torch::nn_module(
     self$self <- torch::nn_multihead_attention(
       embed_dim = embedding_size,
       num_heads = n_head,
-      dropout = attention_dropout
+      dropout = attention_dropout,
+      batch_first = TRUE
     )
     # The built-in attention module already does a projection on the output, so
     # we just want to add residual and normalize.

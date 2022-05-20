@@ -114,9 +114,7 @@ model_bert <- torch::nn_module(
     )
   },
   forward = function(token_ids, token_type_ids) {
-    # TODO: Expect token_ids and tt_ids to be N x tokens x embeddings, instead
-    # of tokens x N x embeddings.
-    mask <- torch::torch_transpose(token_ids == 1, 1, 2)
+    mask <- token_ids == 1
 
     emb_out <- self$embeddings(token_ids, token_type_ids)
     output <- self$encoder(emb_out, mask)

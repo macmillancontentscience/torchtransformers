@@ -19,7 +19,8 @@ test_that("position embedding module works", {
   # get "random" values for weights
   RNGkind(kind = "Mersenne-Twister")
   set.seed(23)
-  dm <- matrix(sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
+  dm <- matrix(
+    sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
     nrow = emb_size, ncol = mpe
   )
 
@@ -38,14 +39,16 @@ test_that("position embedding module works", {
 
   test_result <- test_model(1)
   expected_result <- array(c(0.8, 0.3, 0.8), dim = c(1, 1, 3))
-  testthat::expect_equal(torch::as_array(test_result),
+  expect_equal(
+    torch::as_array(test_result),
     expected_result,
     tolerance = 0.0001
   )
 
   test_result <- test_model()
-  expected_result <- array(c(0.8, 0.9, 0.3, 0.7, 0.8, 0.2), dim = c(2, 1, 3))
-  testthat::expect_equal(torch::as_array(test_result),
+  expected_result <- array(c(0.8, 0.9, 0.3, 0.7, 0.8, 0.2), dim = c(1, 2, 3))
+  expect_equal(
+    torch::as_array(test_result),
     expected_result,
     tolerance = 0.0001
   )
@@ -55,7 +58,7 @@ test_that("position embedding module works", {
 test_that("embeddings_bert module works", {
   emb_size <- 3L
   mpe <- 5L
-  vs <- 7L
+  vocabulary_size <- 7L
 
   n_inputs <- 1L
   # If inputs are smaller than max position embedding, it will cut off the
@@ -65,26 +68,33 @@ test_that("embeddings_bert module works", {
   # get "random" values for input and weights
   RNGkind(kind = "Mersenne-Twister")
   set.seed(23)
-  t_ids <- matrix(sample(2:vs, size = cutoff * n_inputs, replace = TRUE),
-    nrow = cutoff, ncol = n_inputs
+  t_ids <- matrix(
+    sample(2:vocabulary_size, size = cutoff * n_inputs, replace = TRUE),
+    nrow = n_inputs, ncol = cutoff
   )
   ttype_ids <- matrix(
-    rep(1L, cutoff * n_inputs), nrow = cutoff, ncol = n_inputs
+    rep(1L, cutoff * n_inputs),
+    nrow = n_inputs, ncol = cutoff
   )
 
-  wew <- matrix(sample(1:10, size = vs * emb_size, replace = TRUE) / 10,
-    nrow = emb_size, ncol = vs
+  wew <- matrix(
+    sample(1:10, size = vocabulary_size * emb_size, replace = TRUE) / 10,
+    nrow = emb_size, ncol = vocabulary_size
   )
-  ttew <- matrix(sample(1:10, size = 2 * emb_size, replace = TRUE) / 10,
+  ttew <- matrix(
+    sample(1:10, size = 2 * emb_size, replace = TRUE) / 10,
     nrow = emb_size, ncol = 2
   )
-  pepe <- matrix(sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
+  pepe <- matrix(
+    sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
     nrow = emb_size, ncol = mpe
   )
-  lnw <- array(sample(1:10, size = emb_size, replace = TRUE) / 10,
+  lnw <- array(
+    sample(1:10, size = emb_size, replace = TRUE) / 10,
     dim = emb_size
   )
-  lnb <- array(sample(1:10, size = emb_size, replace = TRUE) / 10,
+  lnb <- array(
+    sample(1:10, size = emb_size, replace = TRUE) / 10,
     dim = emb_size
   )
 
@@ -92,7 +102,7 @@ test_that("embeddings_bert module works", {
   test_model <- embeddings_bert(
     embedding_size = emb_size,
     max_position_embeddings = mpe,
-    vocab_size = vs
+    vocab_size = vocabulary_size
   )
   wts <- test_model$state_dict()
   t_ids <- torch::torch_tensor(t_ids)
@@ -113,14 +123,16 @@ test_that("embeddings_bert module works", {
     token_type_ids = ttype_ids
   )
 
-  expected_result <- array(c(
-    0.11484, -0.09223, 0.84912,
-    1.17775, 1.17456, 0.82155,
-    0.11484, 0.22155, 0.10388
-  ),
-  dim = c(3, 1, 3)
+  expected_result <- array(
+    c(
+      0.11484, -0.09223, 0.84912,
+      1.17775, 1.17456, 0.82155,
+      0.11484, 0.22155, 0.10388
+    ),
+    dim = c(1, 3, 3)
   )
-  testthat::expect_equal(torch::as_array(test_result),
+  expect_equal(
+    torch::as_array(test_result),
     expected_result,
     tolerance = 0.0001
   )
