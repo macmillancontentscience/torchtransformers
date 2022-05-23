@@ -18,15 +18,13 @@ if anything we have planned will impact your use cases.
 
 ## Installation
 
-You can install the released version of torchtransformers from
-[CRAN](https://CRAN.R-project.org) with:
+This package currently requires the development version of {torch} from
+[this PR](https://github.com/mlverse/torch/pull/828). It should install
+automatically when you install torchtransformers, but don’t be confused
+when it reinstalls.
 
-``` r
-# No you can't.
-# install.packages("torchtransformers")
-```
-
-And the development version from [GitHub](https://github.com/) with:
+You can install the development version of torchtransformers from
+[GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
