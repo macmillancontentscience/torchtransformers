@@ -25,10 +25,6 @@ test_that("pre-trained bert works", {
   n_token_max <- 128L
   pad_size <- 100L
 
-  # Use thes to check shape.
-  # n_token_max <- 64L
-  # pad_size <- 50L
-
   RNGkind(kind = "Mersenne-Twister")
   set.seed(23)
 
@@ -38,18 +34,15 @@ test_that("pre-trained bert works", {
       sample(2:10, size = n_token_max * n_inputs - pad_size, replace = TRUE),
       rep(1L, pad_size)
     ),
-    nrow = n_token_max, ncol = n_inputs
+    nrow = n_inputs, ncol = n_token_max
   )
   token_type_ids <- matrix(
     rep(1L, n_token_max * n_inputs),
-    nrow = n_token_max, ncol = n_inputs
+    nrow = n_inputs, ncol = n_token_max
   )
 
-  # Transpose to match new input shape.
   token_ids <- torch::torch_tensor(token_ids)
-  token_ids <- torch::torch_transpose(token_ids, 1, 2)
   token_type_ids <- torch::torch_tensor(token_type_ids)
-  token_type_ids <- torch::torch_transpose(token_type_ids, 1, 2)
 
   tiny_bert_model$eval()
   test_results <- tiny_bert_model(

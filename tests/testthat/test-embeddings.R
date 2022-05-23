@@ -21,7 +21,7 @@ test_that("position embedding module works", {
   set.seed(23)
   dm <- matrix(
     sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
-    nrow = emb_size, ncol = mpe
+    nrow = mpe, ncol = emb_size
   )
 
   test_model <- position_embedding(
@@ -32,13 +32,13 @@ test_that("position embedding module works", {
   wts <- test_model$state_dict()
 
   # set weights
-  wts$weight <- torch::torch_tensor(t(dm))
+  wts$weight <- torch::torch_tensor(dm)
 
   test_model$load_state_dict(wts)
   test_model$eval()
 
   test_result <- test_model(1)
-  expected_result <- array(c(0.8, 0.3, 0.8), dim = c(1, 1, 3))
+  expected_result <- array(c(0.8, 0.8, 0.7), dim = c(1, 1, 3))
   expect_equal(
     torch::as_array(test_result),
     expected_result,
@@ -46,7 +46,7 @@ test_that("position embedding module works", {
   )
 
   test_result <- test_model()
-  expected_result <- array(c(0.8, 0.9, 0.3, 0.7, 0.8, 0.2), dim = c(1, 2, 3))
+  expected_result <- array(c(0.8, 0.3, 0.8, 0.9, 0.7, 0.2), dim = c(1, 2, 3))
   expect_equal(
     torch::as_array(test_result),
     expected_result,
@@ -79,15 +79,15 @@ test_that("embeddings_bert module works", {
 
   wew <- matrix(
     sample(1:10, size = vocabulary_size * emb_size, replace = TRUE) / 10,
-    nrow = emb_size, ncol = vocabulary_size
+    nrow = vocabulary_size, ncol = emb_size
   )
   ttew <- matrix(
     sample(1:10, size = 2 * emb_size, replace = TRUE) / 10,
-    nrow = emb_size, ncol = 2
+    nrow = 2, ncol = emb_size
   )
   pepe <- matrix(
     sample(1:10, size = mpe * emb_size, replace = TRUE) / 10,
-    nrow = emb_size, ncol = mpe
+    nrow = mpe, ncol = emb_size
   )
   lnw <- array(
     sample(1:10, size = emb_size, replace = TRUE) / 10,
@@ -109,9 +109,9 @@ test_that("embeddings_bert module works", {
   ttype_ids <- torch::torch_tensor(ttype_ids)
 
   # set weights
-  wts$word_embeddings.weight <- torch::torch_tensor(t(wew))
-  wts$token_type_embeddings.weight <- torch::torch_tensor(t(ttew))
-  wts$position_embeddings.weight <- torch::torch_tensor(t(pepe))
+  wts$word_embeddings.weight <- torch::torch_tensor(wew)
+  wts$token_type_embeddings.weight <- torch::torch_tensor(ttew)
+  wts$position_embeddings.weight <- torch::torch_tensor(pepe)
   wts$layer_norm.weight <- torch::torch_tensor(lnw)
   wts$layer_norm.bias <- torch::torch_tensor(lnb)
 
@@ -125,9 +125,9 @@ test_that("embeddings_bert module works", {
 
   expected_result <- array(
     c(
-      0.11484, -0.09223, 0.84912,
-      1.17775, 1.17456, 0.82155,
-      0.11484, 0.22155, 0.10388
+      0.75422, -0.15422, 0.17271,
+      0.93244, 1.15955, 0.69316, 0.04044,
+      0.26756, 0.57049
     ),
     dim = c(1, 3, 3)
   )

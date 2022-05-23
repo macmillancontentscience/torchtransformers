@@ -33,7 +33,7 @@ test_that("attention module works", {
       size = batch_size * seq_len * emb_size,
       replace = TRUE
     ) / 10,
-    dim = c(seq_len, batch_size, emb_size)
+    dim = c(batch_size, seq_len, emb_size)
   )
   aipw <- array(
     sample(-10:10,
@@ -75,11 +75,6 @@ test_that("attention module works", {
   test_model$eval()
 
   test_input <- torch::torch_tensor(test_input)
-  # Reshape the test_input per the new standard. We should eventually do this
-  # above, but I want to leave the original randomly generated thing as the
-  # input first to make sure we come up with the same result (other than the
-  # shape).
-  test_input <- torch::torch_transpose(test_input, 1, 2)
 
 
   test_result <- test_model(test_input)
