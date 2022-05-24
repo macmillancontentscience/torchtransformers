@@ -1,4 +1,4 @@
-# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,34 +29,40 @@ test_that("the model_bert module works", {
   n_inputs <- 2L
   n_token_max <- 128L
   # get random "ids" for input
-  t_ids <- matrix(sample(2:vocab_size,
-    size = n_token_max * n_inputs,
-    replace = TRUE
-  ),
-  nrow = n_token_max, ncol = n_inputs
+  t_ids <- matrix(
+    sample(
+      2:vocab_size,
+      size = n_token_max * n_inputs,
+      replace = TRUE
+    ),
+    nrow = n_inputs,
+    ncol = n_token_max
   )
-  ttype_ids <- matrix(rep(1L, n_token_max * n_inputs),
-    nrow = n_token_max, ncol = n_inputs
+  ttype_ids <- matrix(
+    rep(1L, n_token_max * n_inputs),
+    nrow = n_inputs,
+    ncol = n_token_max
   )
+
   test_results <- test_model(
     torch::torch_tensor(t_ids),
     torch::torch_tensor(ttype_ids)
   )
 
   # for now, just testing that the output has the right shape
-  testthat::expect_equal(length(test_results), 3L)
-  testthat::expect_equal(
+  expect_equal(length(test_results), 3L)
+  expect_equal(
     dim(test_results[[1]]),
-    c(n_token_max, n_inputs, emb_size)
+    c(n_inputs, n_token_max, emb_size)
   )
-  testthat::expect_equal(length(test_results[[2]]), n_layer)
-  testthat::expect_equal(
+  expect_equal(length(test_results[[2]]), n_layer)
+  expect_equal(
     dim(test_results[[2]][[1]]),
-    c(n_token_max, n_inputs, emb_size)
+    c(n_inputs, n_token_max, emb_size)
   )
 
-  testthat::expect_equal(length(test_results[[3]]), n_layer)
-  testthat::expect_equal(
+  expect_equal(length(test_results[[3]]), n_layer)
+  expect_equal(
     dim(test_results[[3]][[1]]),
     c(n_inputs, n_head, n_token_max, n_token_max)
   )

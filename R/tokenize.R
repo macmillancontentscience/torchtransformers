@@ -1,3 +1,17 @@
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 #' Prepare Text for a BERT Model
 #'
 #' To be used in a BERT-style model, text must be tokenized. In addition, text
@@ -223,14 +237,14 @@ tokenize_bert.character <- function(text,
 #' Simplify Token ID List to Matrix
 #'
 #' BERT-like models expect a matrix of tokens for each example. This function
-#' currently supplies a matrix with \code{n_tokens} rows and
-#' \code{length(list_of_integers)} columns, but we plan to transpose those in an
-#' upcoming change to this API.
+#' converts a list of equal-length integer vectors (such as a padded list of
+#' tokens) into such a matrix.
 #'
 #' @param list_of_integers A list of integer vectors. Each integer should have
 #'   the same length.
 #'
-#' @return A matrix of token ids.
+#' @return A matrix of token ids. Rows are text sequences, and columns are
+#'   tokens.
 #' @export
 #'
 #' @examples
@@ -253,13 +267,13 @@ simplify_bert_token_list <- function(list_of_integers) {
   )
 
   # Since we're guaranteed that each token vector has length == n_tokens, we can
-  # simply flatten the list and convert to matrix. We intentionally return a
-  # matrix with rows = n_tokens and columns = N to match the dimensions expected
-  # in torch::nn_multihead_attention
+  # simply flatten the list and convert to matrix.
   return(
-    matrix(
-      unlist(list_of_integers),
-      nrow = n_tokens
+    t(
+      matrix(
+        unlist(list_of_integers),
+        nrow = n_tokens
+      )
     )
   )
 }

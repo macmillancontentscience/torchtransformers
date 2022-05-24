@@ -24,13 +24,13 @@ weights and the output embeddings.
 
 Inputs:
 
-- input: \eqn{(sequence_length, *, embedding_size)}
+- input: \eqn{(*, sequence_length, embedding_size)}
 
 - optional mask: \eqn{(*, sequence_length)}
 
 Output:
 
-- embeddings: \eqn{(sequence_length, *, embedding_size)}
+- embeddings: \eqn{(*, sequence_length, embedding_size)}
 
 - weights: \eqn{(*, n_head, sequence_length, sequence_length)}
 }
@@ -52,7 +52,7 @@ input <- array(
     size = batch_size * seq_len * emb_size,
     replace = TRUE
   ) / 10,
-  dim = c(seq_len, batch_size, emb_size)
+  dim = c(batch_size, seq_len, emb_size)
 )
 input <- torch::torch_tensor(input)
 model(input)

@@ -1,4 +1,4 @@
-# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@
 #'
 #'   Output:
 #'
-#'   - \eqn{(max_position_embeddings, *, embedding_size)}
+#'   - \eqn{(*, max_position_embeddings, embedding_size)}
 #'
 #' @examples
 #' emb_size <- 3L
@@ -84,7 +84,7 @@ position_embedding <- torch::nn_module(
 
     # We'll need to broadcast the embeddings to every example in the batch, so
     # unsqueeze the batch dimension.
-    return(pe$unsqueeze(2))
+    return(pe$unsqueeze(1))
   }
 )
 
@@ -106,14 +106,14 @@ position_embedding <- torch::nn_module(
 #'
 #'   Inputs:
 #'
-#'   - token_ids: \eqn{(sequence_length, *)}
+#'   - token_ids: \eqn{(*, sequence_length)}
 #'
-#'   - token_type_ids: \eqn{(sequence_length, *)}
+#'   - token_type_ids: \eqn{(*, sequence_length)}
 #'
 #'
 #'   Output:
 #'
-#'   - \eqn{(sequence_length, *, embedding_size)}
+#'   - \eqn{(*, sequence_length, embedding_size)}
 #'
 #' @examples
 #' emb_size <- 3L
@@ -122,9 +122,9 @@ position_embedding <- torch::nn_module(
 #' n_inputs <- 2L
 #' # get random "ids" for input
 #' t_ids <- matrix(sample(2:vs, size = mpe * n_inputs, replace = TRUE),
-#'   nrow = mpe, ncol = n_inputs
+#'   nrow = n_inputs, ncol = mpe
 #' )
-#' ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = mpe, ncol = n_inputs)
+#' ttype_ids <- matrix(rep(1L, mpe * n_inputs), nrow = n_inputs, ncol = mpe)
 #'
 #' model <- embeddings_bert(
 #'   embedding_size = emb_size,
@@ -166,9 +166,21 @@ embeddings_bert <- torch::nn_module(
     self$dropout <- torch::nn_dropout(p = hidden_dropout)
   },
   forward = function(token_ids, token_type_ids) {
-    input_length <- token_ids$shape[[1]] # number of tokens in input...
-    input_length2 <- token_type_ids$shape[[1]] # ...should match!
-    input_length3 <- self$position_embeddings$weight$shape[[1]] # at most.
+    token_shape <- token_ids$shape
+    token_type_shape <- token_type_ids$shape
+
+    # number of tokens in input is always the last dimension (which might be the
+    # only dimension if the batch d is dropped). I think this is actually
+    # over-engineered now but this way we protect against accidentally calling a
+    # non-existant dimension.
+    input_length <- token_shape[[length(token_shape)]]
+
+    # ...should match!
+    input_length2 <- token_type_shape[[length(token_type_shape)]]
+
+    # at most. This is the max_position_embeddings, ie the longest allowed
+    # sequence.
+    input_length3 <- self$position_embeddings$weight$shape[[1]]
 
     if (input_length != input_length2) {
       stop("Shape of token_ids should match shape of token_type_ids.")

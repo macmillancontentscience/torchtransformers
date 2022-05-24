@@ -1,4 +1,4 @@
-# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,13 +26,13 @@
 #'
 #' Inputs:
 #'
-#' - input: \eqn{(input_size, *)}
+#' - input: \eqn{(*, input_size)}
 #'
-#' - residual: \eqn{(output_size, *)}
+#' - residual: \eqn{(*, output_size)}
 #'
 #' Output:
 #'
-#' - \eqn{(output_size, *)}
+#' - \eqn{(*, output_size)}
 #'
 #' @examples
 #' in_size <- 4L

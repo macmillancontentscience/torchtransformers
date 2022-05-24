@@ -50,15 +50,15 @@ Construct a BERT model.
 
   With `sequence_length` <= `max_position_embeddings`:
 
-  - token_ids: \eqn{(sequence_length, *)}
+  - token_ids: \eqn{(*, sequence_length)}
 
-  - token_type_ids: \eqn{(sequence_length, *)}
+  - token_type_ids: \eqn{(*, sequence_length)}
 
   Output:
 
-  - initial_embeddings: \eqn{(sequence_length, *, embedding_size)}
+  - initial_embeddings: \eqn{(*, sequence_length, embedding_size)}
 
-  - output_embeddings: list of \eqn{(sequence_length, *, embedding_size)} for
+  - output_embeddings: list of \eqn{(*, sequence_length, embedding_size)} for
   each transformer layer.
 
   - attention_weights: list of \eqn{(*, n_head, sequence_length,
@@ -88,11 +88,11 @@ t_ids <- matrix(
     size = n_token_max * n_inputs,
     replace = TRUE
   ),
-  nrow = n_token_max, ncol = n_inputs
+  nrow = n_inputs, ncol = n_token_max
 )
 ttype_ids <- matrix(
   rep(1L, n_token_max * n_inputs),
-  nrow = n_token_max, ncol = n_inputs
+  nrow = n_inputs, ncol = n_token_max
 )
 model(
   torch::torch_tensor(t_ids),

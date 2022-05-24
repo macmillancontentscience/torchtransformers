@@ -1,4 +1,4 @@
-# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@
 #'
 #' Inputs:
 #'
-#' - input: \eqn{(sequence_length, *, embedding_size)}
+#' - input: \eqn{(*, sequence_length, embedding_size)}
 #'
 #' - optional mask: \eqn{(*, sequence_length)}
 #'
 #' Output:
 #'
-#' - embeddings: \eqn{(sequence_length, *, embedding_size)}
+#' - embeddings: \eqn{(*, sequence_length, embedding_size)}
 #'
 #' - weights: \eqn{(*, n_head, sequence_length, sequence_length)}
 #'
@@ -52,7 +52,7 @@
 #'     size = batch_size * seq_len * emb_size,
 #'     replace = TRUE
 #'   ) / 10,
-#'   dim = c(seq_len, batch_size, emb_size)
+#'   dim = c(batch_size, seq_len, emb_size)
 #' )
 #' input <- torch::torch_tensor(input)
 #' model(input)
@@ -117,13 +117,13 @@ transformer_encoder_single_bert <- torch::nn_module(
 #'
 #' With each input token list of length `sequence_length`:
 #'
-#'  - input: \eqn{(sequence_length, *, embedding_size)}
+#'  - input: \eqn{(*, sequence_length, embedding_size)}
 #'
 #'  - optional mask: \eqn{(*, sequence_length)}
 #'
 #'  Output:
 #'
-#'  - embeddings: list of \eqn{(sequence_length, *, embedding_size)} for each
+#'  - embeddings: list of \eqn{(*, sequence_length, embedding_size)} for each
 #'  transformer layer.
 #'
 #'  - weights: list of \eqn{(*, n_head, sequence_length, sequence_length)} for
@@ -148,7 +148,7 @@ transformer_encoder_single_bert <- torch::nn_module(
 #'     size = batch_size * seq_len * emb_size,
 #'     replace = TRUE
 #'   ) / 10,
-#'   dim = c(seq_len, batch_size, emb_size)
+#'   dim = c(batch_size, seq_len, emb_size)
 #' )
 #' input <- torch::torch_tensor(input)
 #' model(input)

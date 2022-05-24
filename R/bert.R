@@ -1,4 +1,4 @@
-# Copyright 2021 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,15 +37,15 @@
 #'
 #'   With `sequence_length` <= `max_position_embeddings`:
 #'
-#'   - token_ids: \eqn{(sequence_length, *)}
+#'   - token_ids: \eqn{(*, sequence_length)}
 #'
-#'   - token_type_ids: \eqn{(sequence_length, *)}
+#'   - token_type_ids: \eqn{(*, sequence_length)}
 #'
 #'   Output:
 #'
-#'   - initial_embeddings: \eqn{(sequence_length, *, embedding_size)}
+#'   - initial_embeddings: \eqn{(*, sequence_length, embedding_size)}
 #'
-#'   - output_embeddings: list of \eqn{(sequence_length, *, embedding_size)} for
+#'   - output_embeddings: list of \eqn{(*, sequence_length, embedding_size)} for
 #'   each transformer layer.
 #'
 #'   - attention_weights: list of \eqn{(*, n_head, sequence_length,
@@ -74,11 +74,11 @@
 #'     size = n_token_max * n_inputs,
 #'     replace = TRUE
 #'   ),
-#'   nrow = n_token_max, ncol = n_inputs
+#'   nrow = n_inputs, ncol = n_token_max
 #' )
 #' ttype_ids <- matrix(
 #'   rep(1L, n_token_max * n_inputs),
-#'   nrow = n_token_max, ncol = n_inputs
+#'   nrow = n_inputs, ncol = n_token_max
 #' )
 #' model(
 #'   torch::torch_tensor(t_ids),
@@ -114,9 +114,7 @@ model_bert <- torch::nn_module(
     )
   },
   forward = function(token_ids, token_type_ids) {
-    # TODO: Expect token_ids and tt_ids to be N x tokens x embeddings, instead
-    # of tokens x N x embeddings.
-    mask <- torch::torch_transpose(token_ids == 1, 1, 2)
+    mask <- token_ids == 1
 
     emb_out <- self$embeddings(token_ids, token_type_ids)
     output <- self$encoder(emb_out, mask)
