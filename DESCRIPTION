@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9100
+Version: 0.0.0.9101
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -31,18 +31,14 @@ Imports:
     wordpiece (>= 2.1.3),
     wordpiece.data (>= 2.0.0)
 Remotes:
-    jonthegeek/torch@batch-first
+    mlverse/torch
 Suggests: 
-    coro (>= 1.0.1),
     dplyr,
-    ggplot2,
-    glue,
     luz,
     tibble,
     testthat (>= 3.0.0),
     knitr,
-    progress,
     rmarkdown,
-    zoo
+    roxygen2
 Config/testthat/edition: 3
 VignetteBuilder: knitr
