@@ -7,6 +7,22 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- 
+Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -22,9 +38,8 @@ library(luz)
 
 library(dlr)
 library(dplyr)
+library(yardstick)
 ```
-
-PROBABLY CUT THIS DOWN BUT I WROTE IT ALL OUT IN CASE WE WANT IT ALL.
 
 Textual entailment is a common NLP task, and is included in the [GLUE](https://gluebenchmark.com/) and [SuperGLUE](https://super.gluebenchmark.com/) NLP benchmarks.
 The task consists of two pieces of text, a `premise` and a `hypothesis`.
@@ -74,12 +89,8 @@ The test sets are for scoring your model on Kaggle, so we'll skip those.
 
 We'll train our model using `train.tsv`, and test it using `dev_matched.tsv` and `dev_mismatched.tsv`.
 
-We will eventually add a function to this package to download and prepare these datasets, but for now we'll do so manually.
-
 ```{r download}
-# Set up a processor function for {dlr} to load the data. Soon (maybe before
-# this vignette is merged) we'll export a function that takes this data all the
-# way through to a torch dataset.
+# Set up a processor function for {dlr} to load the data.
 process_mnli <- function(source_file) {
   dataset_names <- c(
     "train",
@@ -96,9 +107,9 @@ process_mnli <- function(source_file) {
     function(this_dataset) {
       # We specify column types to make sure things come in as we expect.
       column_spec <- dplyr::case_when(
-        stringr::str_starts(this_dataset, "dev_") ~ "iiccccccccffffff",
+        stringr::str_starts(this_dataset, "dev_") ~ "iicccccccccccccc",
         stringr::str_starts(this_dataset, "test_") ~ "iiiccccccc",
-        TRUE ~ "iiccccccccff"
+        TRUE ~ "iicccccccccc"
       )
       raw_tibble <- readr::read_tsv(
         unz(source_file, fs::path("MNLI", this_dataset, ext = "tsv")),
@@ -107,12 +118,20 @@ process_mnli <- function(source_file) {
         # character.
         quote = ""
       )
+      # If there are labels, standardize them, to make sure the factor levels
+      # are always the same.
+      if ("gold_label" %in% colnames(raw_tibble)) {
+        raw_tibble$gold_label <- factor(
+          raw_tibble$gold_label,
+          levels = c("entailment", "neutral", "contradiction")
+        )
+      }
       return(
         dplyr::select(
           raw_tibble,
-          -.data$index,
-          -.data$promptID,
-          -.data$pairID,
+          -index,
+          -promptID,
+          -pairID,
           -dplyr::ends_with("_parse"),
           -dplyr::starts_with("label")
         )
@@ -134,6 +153,7 @@ mnli_tibbles <- dlr::read_or_cache(
   process_f = process_mnli
 )
 
+# Restore the timeout.
 options(old_timeout)
 ```
 
@@ -142,56 +162,160 @@ We need to set these datasets up for use with {luz}.
 ```{r dataset-constructor}
 entailment_constructor <- torch::dataset(
   name = "entailment_dataset",
-  initialize = function(premises, hypotheses, labels, n_tokens = 512) {
-    
-    
-    # First we need to tokenize everything in the style required for BERT.
-    anchor_tokenized <- tokenize_bert(
-      text = df$anchor,
-      n_tokens = n_tokens
-    )
-    positive_tokenized <- tokenize_bert(
-      text = df$positive,
-      n_tokens = n_tokens
-    )
-    negative_tokenized <- tokenize_bert(
-      text = df$negative,
+  initialize = function(premises, hypotheses, labels = NULL, n_tokens = 128) {
+    tokenized_text <- tokenize_bert(
+      premises,
+      hypotheses,
       n_tokens = n_tokens
     )
     
-    # We supply those matrices as tensors.
-    self$anchor <- torch::torch_tensor(anchor_tokenized$token_ids)
-    self$positive <- torch::torch_tensor(positive_tokenized$token_ids)
-    self$negative <- torch::torch_tensor(negative_tokenized$token_ids)
+    # We supply the data as tensors.
+    self$tokenized_text <- torch::torch_tensor(tokenized_text$token_ids)
+    self$token_types <- torch::torch_tensor(tokenized_text$token_type_ids)
     
-    # For this model, the token_types matrix is the same for all three types of
-    # data, so we'll just return one of them.
-    self$token_types <- torch::torch_tensor(anchor_tokenized$token_type_ids)
+    # Also supply the labels as tensors.
+    self$labels = torch::torch_tensor(as.integer(labels))
   },
   # We extract subsets of this data using an index.
   .getitem = function(index) {
+    if (length(self$labels)) {
+      target <- self$labels[index]
+    } else {
+      target <- list()
+    }
+    
     list(
       list(
-        anchor = list(
-          token_ids = self$anchor[index, ],
-          token_type_ids = self$token_types[index, ]
-        ), 
-        positive = list(
-          token_ids = self$positive[index, ],
-          token_type_ids = self$token_types[index, ]
-        ), 
-        negative = list(
-          token_ids = self$negative[index, ],
-          token_type_ids = self$token_types[index, ]
-        )
+        token_ids = self$tokenized_text[index, ],
+        token_type_ids = self$token_types[index, ]
       ),
-      list() # No target.
+      target
     )
   },
   # The dataset also needs a method to determine the length of the entire
   # dataset.
   .length = function() {
-    dim(self$anchor)[[1]]
+    dim(self$tokenized_text)[[1]]
   }
-) 
+)
 ```
+
+We use that dataset constructor to process the train, matched, and mismatched datasets.
+
+```{r datasets}
+train_ds <- entailment_constructor(
+  premises = mnli_tibbles$train$sentence1,
+  hypotheses = mnli_tibbles$train$sentence2,
+  labels = mnli_tibbles$train$gold_label
+)
+test_matched_ds <- entailment_constructor(
+  premises = mnli_tibbles$dev_matched$sentence1,
+  hypotheses = mnli_tibbles$dev_matched$sentence2,
+  labels = mnli_tibbles$dev_matched$gold_label
+)
+test_mismatched_ds <- entailment_constructor(
+  premises = mnli_tibbles$dev_mismatched$sentence1,
+  hypotheses = mnli_tibbles$dev_mismatched$sentence2,
+  labels = mnli_tibbles$dev_mismatched$gold_label
+)
+```
+
+## Model
+
+We'll construct a model based on BERT, with a linear layer to score the input on the three label dimensions.
+
+```{r model}
+entailment_classifier <- torch::nn_module(
+  "entailment_classifier",
+  initialize = function(model_name = "bert_tiny_uncased") {
+    embedding_size <- config_bert(model_name, "embedding_size")
+    self$bert <- make_and_load_bert(model_name)
+    # After pooled bert output, do a final dense layer.
+    self$linear <- torch::nn_linear(
+      in_features = embedding_size,
+      out_features = 3L # 3 possible labels
+    )
+  },
+  forward = function(x) {
+    output <- self$bert(x$token_ids, x$token_type_ids)
+
+    # Take the output embeddings from the last layer.
+    output <- output$output_embeddings
+    output <- output[[length(output)]]
+    # Take the [CLS] token embedding for classification.
+    output <- output[ , 1, ]
+    # Apply the last dense layer to the pooled output.
+    output <- self$linear(output)
+    return(output)
+  }
+)
+```
+
+We fit the model using `{luz}`.
+We only fit for one epoch as a proof of concept.
+
+```{r fit}
+torch::torch_manual_seed(123456)
+fitted <- entailment_classifier %>% 
+  luz::setup(
+    loss = torch::nn_cross_entropy_loss(),
+    optimizer = torch::optim_adam,
+    metrics = list(
+      luz::luz_metric_accuracy()
+    )
+  ) %>% 
+  fit(
+    train_ds, 
+    epochs = 1, 
+    valid_data = 0.1, 
+    dataloader_options = list(batch_size = 128L)
+  )
+```
+
+## Results
+
+We predict the two test datasets, and measure the results.
+
+```{r predict}
+predictions_matched <- fitted %>% 
+  predict(test_matched_ds) %>% 
+  torch::nnf_softmax(2) %>% 
+  torch::torch_argmax(2)
+predictions_matched <- predictions_matched$to(device = "cpu") %>% 
+  torch::as_array()
+
+dev_matched <- mnli_tibbles$dev_matched %>% 
+  dplyr::mutate(
+    .pred = factor(
+      predictions_matched, levels = 1:3, labels = levels(gold_label)
+    )
+  )
+
+yardstick::accuracy(dev_matched, gold_label, .pred)
+#> # A tibble: 1 × 3
+#>   .metric  .estimator .estimate
+#>   <chr>    <chr>          <dbl>
+#> 1 accuracy multiclass     0.651
+
+predictions_mismatched <- fitted %>% 
+  predict(test_mismatched_ds) %>% 
+  torch::nnf_softmax(2) %>% 
+  torch::torch_argmax(2)
+predictions_mismatched <- predictions_mismatched$to(device = "cpu") %>% 
+  torch::as_array()
+
+dev_mismatched <- mnli_tibbles$dev_mismatched %>% 
+  dplyr::mutate(
+    .pred = factor(
+      predictions_mismatched, levels = 1:3, labels = levels(gold_label)
+    )
+  )
+
+yardstick::accuracy(dev_mismatched, gold_label, .pred)
+#> # A tibble: 1 × 3
+#>   .metric  .estimator .estimate
+#>   <chr>    <chr>          <dbl>
+#> 1 accuracy multiclass     0.663
+```
+
+The published results for bert_tiny_uncased on these datasets are 0.72 and 0.73, so our results of 0.65 and 0.66 after a single epoch are on track.

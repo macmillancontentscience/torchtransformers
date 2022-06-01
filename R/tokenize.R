@@ -416,7 +416,20 @@ tokenize_bert <- function(...,
   # Tokenize everything.
   tokenized_segments <- purrr::map(
     dots,
-    ~tokenizer(.x, vocab = vocab, !!!tokenizer_options)
+    function(this_dot, vocab, tokenizer_options) {
+      do.call(
+        tokenizer,
+        c(
+          list(
+            this_dot,
+            vocab = vocab
+          ),
+          tokenizer_options
+        )
+      )
+    },
+    vocab = vocab,
+    tokenizer_options = tokenizer_options
   )
 
   # We could use this information to split the problem (truncate ones that are
