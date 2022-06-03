@@ -4,7 +4,7 @@
 \alias{.load_weights}
 \title{Load Pretrained Weights into a BERT Model}
 \usage{
-.load_weights(model, model_name = "bert_base_uncased", redownload = FALSE)
+.load_weights(model, model_name = "bert_tiny_uncased", redownload = FALSE)
 }
 \arguments{
 \item{model}{A BERT-type model, constructed using `model_bert`.}

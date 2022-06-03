@@ -7,7 +7,8 @@
 make_and_load_bert(model_name = "bert_tiny_uncased")
 }
 \arguments{
-\item{model_name}{Character; which flavor of BERT to use.}
+\item{model_name}{Character; which flavor of BERT to use. See
+\code{\link{available_berts}} for known models.}
 }
 \value{
 The model with pretrained weights loaded.

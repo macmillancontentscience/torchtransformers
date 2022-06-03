@@ -209,7 +209,7 @@ spine_with_pooling <- torch::nn_module(
   classname = "pooled_spine",
   initialize = function(model_name = "bert_tiny_uncased") {
     embedding_size <- config_bert(
-      bert_model = model_name, 
+      model_name = model_name, 
       parameter = "embedding_size"
     ) 
     self$bert <- make_and_load_bert(model_name)

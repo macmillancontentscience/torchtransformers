@@ -7,7 +7,8 @@
 .download_weights(model_name = "bert_tiny_uncased", redownload = FALSE)
 }
 \arguments{
-\item{model_name}{Character; which flavor of BERT to use.}
+\item{model_name}{Character; which flavor of BERT to use. See
+\code{\link{available_berts}} for known models.}
 
 \item{redownload}{Logical; should the weights be downloaded fresh even if
 they're cached? This is not currently exposed to the end user, and exists
