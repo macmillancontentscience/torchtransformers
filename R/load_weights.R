@@ -19,17 +19,16 @@
 #'
 #' Construct a BERT model and load pretrained weights.
 #'
-#' @param model_name Character; which flavor of BERT to use.
+#' @param model_name Character; which flavor of BERT to use. See
+#'   \code{\link{available_berts}} for known models.
 #'
 #' @return The model with pretrained weights loaded.
 #' @export
 make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
-  # https://github.com/macmillancontentscience/torchtransformers/issues/9
-  recognized_models <- bert_configs$model_name
-  if (!model_name %in% recognized_models) {
+  if (!model_name %in% available_berts()) {
     stop(
       "model_name should be one of: ",
-      paste0(recognized_models, collapse = ", ")
+      paste0(available_berts(), collapse = ", ")
     )
   }
   params <- bert_configs[bert_configs$model_name == model_name, ]
@@ -181,7 +180,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 #'   checks; the function is called for side effects.)
 #' @keywords internal
 .load_weights <- function(model,
-                          model_name = "bert_base_uncased",
+                          model_name = "bert_tiny_uncased",
                           redownload = FALSE) {
   # This will usually just fetch from the cache
   sd <- .download_weights(model_name = model_name, redownload = redownload)
@@ -197,4 +196,46 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
   }
   model$load_state_dict(my_sd)
   return(length(names_in_common)) # This function is for side effects.
+}
+
+#' BERT Model Parameters
+#'
+#' Several parameters define a BERT model. This function can be used to easily
+#' load them.
+#'
+#' @param model_name Character scalar; the name of a known BERT model.
+#' @param parameter Character scalar; the desired parameter.
+#'
+#' @return Integer scalar; the value of that parameter for that model.
+#' @export
+#'
+#' @examples
+#' config_bert("bert_medium_uncased", "n_head")
+config_bert <- function(model_name,
+                        parameter = c(
+                          "embedding_size",
+                          "n_layer",
+                          "n_head",
+                          "max_tokens",
+                          "vocab_size"
+                        )) {
+  stopifnot(
+    length(model_name) == 1,
+    model_name %in% available_berts()
+  )
+  parameter <- match.arg(parameter)
+  bert_configs[bert_configs$model_name == model_name,][[parameter]]
+}
+
+#' Available BERT Models
+#'
+#' List the BERT models that are defined for this package.
+#'
+#' @return A character vector of model names.
+#' @export
+#'
+#' @examples
+#' available_berts()
+available_berts <- function() {
+  return(bert_configs$model_name)
 }

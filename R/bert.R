@@ -126,32 +126,3 @@ model_bert <- torch::nn_module(
     ))
   }
 )
-
-#' BERT Model Parameters
-#'
-#' Several parameters define a BERT model. This function can be used to easily
-#' load them.
-#'
-#' @param bert_model Character scalar; the name of a known BERT model.
-#' @param parameter Chararcter scalar; the desired parameter.
-#'
-#' @return Integer scalar; the value of that parameter for that model.
-#' @export
-#'
-#' @examples
-#' config_bert("bert_medium_uncased", "n_head")
-config_bert <- function(bert_model,
-                        parameter = c(
-                          "embedding_size",
-                          "n_layer",
-                          "n_head",
-                          "max_tokens",
-                          "vocab_size"
-                        )) {
-  stopifnot(
-    length(bert_model) == 1,
-    bert_model %in% bert_configs$model_name
-  )
-  parameter <- match.arg(parameter)
-  bert_configs[bert_configs$model_name == bert_model,][[parameter]]
-}

@@ -39,7 +39,6 @@ library(luz)
 library(dlr)
 library(dplyr)
 library(jsonlite)
-library(rsample)
 library(wordpiece)
 library(wordpiece.data)
 ```
@@ -108,27 +107,16 @@ paraphrases$negative[[1]]
 # [3] "A person is at a diner, ordering an omelette."
 ```
 
-We split this data into a training set and a validation set.
-We'll use 90% of the data for training.
-We'll use the other 10% to validate the model as we train.
-
-```{r split}
-set.seed(123)
-paraphrases_split <- rsample::initial_split(paraphrases, prop = 0.9)
-paraphrases_train <- rsample::training(paraphrases_split)
-paraphrases_valid <- rsample::testing(paraphrases_split)
-```
-
 ## Prepare the data for torch
 
 To load triplet data into `{torch}`, we will need to define a custom torch `dataset` constructor.
-This constructor will convert vectors of anchors, positive examples, and negative examples into a dataset that can be loaded into `{torch}` batches.
-For ease-of-use we're passing in a data.frame and assuming it is named like our data.frame.
+This constructor will convert a dataframe containing vectors of anchors, positive examples, and negative examples into a dataset that can be loaded into `{torch}`.
+For ease-of-use we're passing in a dataframe and assuming it is named like our dataframe.
 
 ```{r dataset-constructor}
 triplet_text_dataset <- torch::dataset(
   name = "triplet_text_dataset",
-  initialize = function(df, n_tokens = 64) {
+  initialize = function(df, n_tokens = 128) {
     # First we need to tokenize everything in the style required for BERT.
     anchor_tokenized <- tokenize_bert(
       text = df$anchor,
@@ -180,21 +168,12 @@ triplet_text_dataset <- torch::dataset(
 )
 ```
 
-We use the constructor to create a training dataset and a validation dataset.
+We use the constructor to create a training dataset.
+We'll let {lux} split this dataset into training and validation.
 The dataset constructor performs the tokenization, so this step will be somewhat slow.
 
 ```{r datasets}
-train_ds <- triplet_text_dataset(paraphrases_train)
-valid_ds <- triplet_text_dataset(paraphrases_valid)
-```
-
-The data is sampled for each torch epoch using a `dataloader`.
-You may wish to change the `batch_size` depending on your available RAM.
-
-```{r dataloader}
-batch_size <- 256
-train_dl <- torch::dataloader(train_ds, batch_size = batch_size, shuffle = TRUE)
-valid_dl <- torch::dataloader(valid_ds, batch_size = batch_size)
+train_ds <- triplet_text_dataset(paraphrases)
 ```
 
 ## Define the model
@@ -209,7 +188,7 @@ spine_with_pooling <- torch::nn_module(
   classname = "pooled_spine",
   initialize = function(model_name = "bert_tiny_uncased") {
     embedding_size <- config_bert(
-      bert_model = model_name, 
+      model_name = model_name, 
       parameter = "embedding_size"
     ) 
     self$bert <- make_and_load_bert(model_name)
@@ -267,17 +246,22 @@ triplet_text_model <- torch::nn_module(
 ## Fit the model
 
 We use `{luz}` to perform the actual model fitting.
-With these settings, this model gets about as good as it's going to get after 3 epochs.
+With these settings, this model gets about as good as it's going to get after a single epoch.
 
 ```{r fit}
+set.seed(12345)
 torch::torch_manual_seed(123456)
 fitted <- triplet_text_model %>% 
   luz::setup(optimizer = torch::optim_adam) %>% 
-  luz::set_hparams(model_name = "bert_tiny_uncased") %>% 
-  fit(train_dl, epochs = 3, valid_data = valid_dl)
+  fit(
+    train_ds, 
+    epochs = 1, 
+    valid_data = 0.1, 
+    dataloader_options = list(batch_size = 256L)
+  )
 ```
 
-After a single epoch of training, the loss on the validation set is about 0.22
+After a single epoch of training, the loss on the validation set is about 0.22.
 
 ## Using the model
 
@@ -309,44 +293,53 @@ vectorizer_model <- vectorizer()
 vectorizer_model$load_state_dict(model_weights)
 ```
 
-We can use that model to map all of the anchor phrases from our validation set into an embedding space.
+We can use that model to map the positive paraphrases from our dataset into an embedding space.
+We'll work with a subset to make sure they can all fit in RAM.
 
 ```{r paraphrase-space}
 vectorizer_model$eval()
 
 paraphrase_space <- vectorizer_model(
   list(
-    token_ids = valid_ds$anchor, 
-    token_type_ids = valid_ds$token_types
+    token_ids = train_ds$positive[1:10000, ], 
+    token_type_ids = train_ds$token_types[1:10000, ]
   )
 )
 ```
 
-A given positive example should, in theory, be closest to its associated anchor in that space.
+A given anchor should, in theory, be closest to its associated paraphrase in that space.
 
-```{r positive-in-space}
-# Map some of the positive examples into that same embedding space.
-positives_in_space <- vectorizer_model(
+```{r anchors-in-space}
+# Map some of the anchors into that same embedding space.
+anchors_in_space <- vectorizer_model(
   list(
-    token_ids = valid_ds$positive[1:100, ],
-    token_type_ids = valid_ds$token_types[1:100, ]
+    token_ids = train_ds$anchor[1:100, ],
+    token_type_ids = train_ds$token_types[1:100, ]
   )
 )
 
 # Create a simple pairwise distance calculator.
 pair_dist <- torch::nn_pairwise_distance()
 
-positive_id <- 1
-distances <- pair_dist(positives_in_space[positive_id, ], paraphrase_space)
+# I picked out the 8th example because its result is somewhat interesting.
+anchor_id <- 8
+distances <- pair_dist(anchors_in_space[anchor_id, ], paraphrase_space)
 closest_match <- which(
   torch::as_array(distances) == min(torch::as_array(distances))
 )
 
-paraphrases$positive[[positive_id]]
-#> [1] "A person is outdoors, on a horse."
+paraphrases$anchor[[anchor_id]]
+#> [1] "Two women who just had lunch hugging and saying goodbye."
 
-paraphrases$anchor[[closest_match]]
-#> [1] "Man serving a customer from a vegetable stand."
+# The actual "correct" paraphrase.
+paraphrases$positive[[anchor_id]]
+#> [1] "There are two woman in this picture."
+
+# The closest paraphrase in our embedding space.
+paraphrases$positive[[closest_match]]
+#> [1] "A couple is having lunch"
 ```
 
+While this is incorrect, you can see that the model picked up on the relationship between "two" and "a couple", and also that the sentence had something to do with having lunch.
 Further refinement of this model would be necessary to make the results actually useful, but the general approach can lead to models that are useful for quickly matching a new piece of text to a large collection of known text.
+If we were using this for something real, we would want a separate test set that maps to the same set of paraphrases.
