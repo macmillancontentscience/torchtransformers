@@ -157,66 +157,33 @@ mnli_tibbles <- dlr::read_or_cache(
 options(old_timeout)
 ```
 
-We need to set these datasets up for use with {luz}.
-
-```{r dataset-constructor}
-entailment_constructor <- torch::dataset(
-  name = "entailment_dataset",
-  initialize = function(premises, hypotheses, labels = NULL, n_tokens = 128) {
-    tokenized_text <- tokenize_bert(
-      premises,
-      hypotheses,
-      n_tokens = n_tokens
-    )
-    
-    # We supply the data as tensors.
-    self$tokenized_text <- torch::torch_tensor(tokenized_text$token_ids)
-    self$token_types <- torch::torch_tensor(tokenized_text$token_type_ids)
-    
-    # Also supply the labels as tensors.
-    self$labels = torch::torch_tensor(as.integer(labels))
-  },
-  # We extract subsets of this data using an index.
-  .getitem = function(index) {
-    if (length(self$labels)) {
-      target <- self$labels[index]
-    } else {
-      target <- list()
-    }
-    
-    list(
-      list(
-        token_ids = self$tokenized_text[index, ],
-        token_type_ids = self$token_types[index, ]
-      ),
-      target
-    )
-  },
-  # The dataset also needs a method to determine the length of the entire
-  # dataset.
-  .length = function() {
-    dim(self$tokenized_text)[[1]]
-  }
-)
-```
-
-We use that dataset constructor to process the train, matched, and mismatched datasets.
+We need to set these datasets up for use with {luz}. 
+We can use `dataset_bert()` to process the train, matched, and mismatched datasets.
 
 ```{r datasets}
-train_ds <- entailment_constructor(
-  premises = mnli_tibbles$train$sentence1,
-  hypotheses = mnli_tibbles$train$sentence2,
-  labels = mnli_tibbles$train$gold_label
+train_ds <- dataset_bert(
+  x = dplyr::select(
+    mnli_tibbles$train, 
+    sentence1,
+    sentence2
+  ),
+  y = mnli_tibbles$train$gold_label
 )
-test_matched_ds <- entailment_constructor(
-  premises = mnli_tibbles$dev_matched$sentence1,
-  hypotheses = mnli_tibbles$dev_matched$sentence2,
-  labels = mnli_tibbles$dev_matched$gold_label
+test_matched_ds <- dataset_bert(
+  x = dplyr::select(
+    mnli_tibbles$dev_matched, 
+    sentence1,
+    sentence2
+  ),
+  y = mnli_tibbles$dev_matched$gold_label
 )
-test_mismatched_ds <- entailment_constructor(
-  premises = mnli_tibbles$dev_mismatched$sentence1,
-  hypotheses = mnli_tibbles$dev_mismatched$sentence2,
-  labels = mnli_tibbles$dev_mismatched$gold_label
+test_mismatched_ds <- dataset_bert(
+  x = dplyr::select(
+    mnli_tibbles$dev_mismatched, 
+    sentence1,
+    sentence2
+  ),
+  y = mnli_tibbles$dev_mismatched$gold_label
 )
 ```
 
