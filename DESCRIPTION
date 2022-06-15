@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9102
+Version: 0.0.0.9200
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
@@ -25,13 +25,13 @@ License: Apache License (>= 2)
 RoxygenNote: 7.2.0
 Imports:
     dlr (>= 1.0.0),
+    fastmatch,
     purrr,
+    rlang,
     stringr (>= 1.4.0),
-    torch (>= 0.7.2.9000),
+    torch (>= 0.8.0),
     wordpiece (>= 2.1.3),
     wordpiece.data (>= 2.0.0)
-Remotes:
-    mlverse/torch
 Suggests: 
     dplyr,
     luz,

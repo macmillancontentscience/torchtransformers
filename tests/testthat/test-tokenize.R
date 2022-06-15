@@ -53,6 +53,12 @@ test_that("tokenize_bert returns data in the expected shapes", {
   )
   expect_snapshot(
     tokenize_bert(
+      text = as.list(to_tokenize),
+      n_tokens = 6
+    )
+  )
+  expect_snapshot(
+    tokenize_bert(
       text = to_tokenize,
       n_tokens = 6,
       simplify = FALSE
@@ -72,5 +78,104 @@ test_that("tokenize_bert returns data in the expected shapes", {
       simplify = FALSE,
       increment_index = FALSE
     )
+  )
+})
+
+test_that("tokenizing works for 2-segment sequences", {
+  to_tokenize <- c(
+    "This is a sample sentence.",
+    "This is another, longer sample sentence."
+  )
+
+  # 6 tokens, 8 tokens.
+
+  expect_snapshot(
+    tokenize_bert(
+      to_tokenize,
+      to_tokenize
+    )
+  )
+  expect_snapshot(
+    tokenize_bert(
+      to_tokenize,
+      to_tokenize,
+      n_tokens = 11
+    )
+  )
+  expect_snapshot(
+    tokenize_bert(
+      to_tokenize,
+      to_tokenize,
+      n_tokens = 10
+    )
+  )
+  expect_snapshot(
+    tokenize_bert(
+      to_tokenize,
+      rev(to_tokenize),
+      n_tokens = 10
+    )
+  )
+  expect_snapshot(
+    tokenize_bert(
+      to_tokenize,
+      rev(to_tokenize),
+      n_tokens = 11
+    )
+  )
+})
+
+test_that("tokenizing bad things doesn't work", {
+  expect_error(
+    tokenize_bert(1:5),
+    class = "bad_text_to_tokenize"
+  )
+
+  expect_error(
+    tokenize_bert(
+      list(a = letters, b = letters)
+    ),
+    class = "tokenize_list_of_sequences"
+  )
+
+  to_tokenize <- c(
+    "An example with quite a few tokens.",
+    "A short example.",
+    "Another one."
+  )
+
+  expect_error(
+    tokenize_bert(
+      to_tokenize,
+      pad_token = "BADTOKEN"
+    ),
+    regexp = "must be in vocab"
+  )
+  expect_error(
+    tokenize_bert(
+      to_tokenize,
+      cls_token = "BADTOKEN"
+    ),
+    regexp = "must be in vocab"
+  )
+  expect_error(
+    tokenize_bert(
+      to_tokenize,
+      pad_token = "BADTOKEN"
+    ),
+    regexp = "must be in vocab"
+  )
+
+  expect_error(
+    tokenize_bert(
+      to_tokenize,
+      to_tokenize,
+      to_tokenize
+    ),
+    regexp = "at most 2 segments"
+  )
+
+  expect_error(
+
   )
 })

@@ -12,6 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#' Shortcut to make sure we're using wordpiece
+#'
+#' @param vocab
+#'
+#' @return The vocab or wordpiece_vocab.
+#' @keywords internal
+.default_vocab <- function(vocab) {
+  return(vocab %||% wordpiece.data::wordpiece_vocab())
+}
+
+#' Shortcut to make sure we're using wordpiece
+#'
+#' @param tokenizer
+#'
+#' @return The vocab or wordpiece_tokenize.
+#' @keywords internal
+.default_tokenizer <- function(tokenizer) {
+  return(tokenizer %||% wordpiece::wordpiece_tokenize)
+}
 
 #' Tokenize a single vector of text
 #'
@@ -42,7 +61,10 @@
                                           tokenizer = wordpiece::wordpiece_tokenize,
                                           vocab = wordpiece.data::wordpiece_vocab(),
                                           tokenizer_options = NULL) {
-  stop("text must be a character vector or a list of character vectors.")
+  rlang::abort(
+    message = "text must be a character vector or a list of character vectors.",
+    class = "bad_text_to_tokenize"
+  )
 }
 
 #' @export
@@ -72,7 +94,14 @@
       tokenizer_options = tokenizer_options
     )
   } else {
-    stop("We have not yet implemented this for multiple sequences.")
+    rlang::abort(
+      message = paste(
+        "We have not yet implemented tokenization for lists of sequences.",
+        "Provide each sequence as a separate argument to tokenize_bert.",
+        sep = "\n"
+      ),
+      class = "tokenize_list_of_sequences"
+    )
   }
 
   # TODO when we actually implement this: Technically we should error if any of
@@ -98,20 +127,6 @@
   names(cls_index) <- cls_token
   sep_index <- fastmatch::fmatch(sep_token, vocab) - 1L
   names(sep_index) <- sep_token
-
-  # If any of those are NA, that means they aren't in the supplied vocab. I'm
-  # lumping these together for now but eventually make prettier errors with
-  # rlang.
-  if (
-    any(
-      is.na(pad_index),
-      !length(pad_index),
-      is.na(cls_index),
-      is.na(sep_index)
-    )
-  ) {
-    stop("The pad_token, cls_token, and sep_token must be in vocab.")
-  }
 
   tokenized_text <- do.call(
     tokenizer,
@@ -232,7 +247,7 @@ simplify_bert_token_list <- function(list_of_integers) {
     is.list(list_of_integers),
     purrr::every(list_of_integers, is.integer)
   )
-  n_tokens = length(list_of_integers[[1]])
+  n_tokens <- length(list_of_integers[[1]])
 
   stopifnot(
     all(lengths(list_of_integers) == n_tokens)
@@ -338,6 +353,10 @@ tokenize_bert <- function(...,
                           tokenizer = wordpiece::wordpiece_tokenize,
                           vocab = wordpiece.data::wordpiece_vocab(),
                           tokenizer_options = NULL) {
+  # Use wordpiece if they aren't specific.
+  tokenizer <- .default_tokenizer(tokenizer)
+  vocab <- .default_vocab(vocab)
+
   dots <- list(...)
 
   # Fail if the inputs aren't the same length as each other. Eventually this

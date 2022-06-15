@@ -110,3 +110,23 @@ test_that("pre-trained bert works", {
     tolerance = 0.0001
   )
 })
+
+test_that("config_bert works as expected", {
+  expect_error(
+    config_bert("not_a_model", "embedding_size"),
+    class = "bad_model_name"
+  )
+  expect_error(
+    config_bert(letters, "embedding_size"),
+    class = "bad_model_name"
+  )
+
+  expect_identical(
+    config_bert("bert_tiny_uncased", "n_head"),
+    2L
+  )
+  expect_identical(
+    config_bert("bert_medium_uncased", "max_tokens"),
+    512L
+  )
+})

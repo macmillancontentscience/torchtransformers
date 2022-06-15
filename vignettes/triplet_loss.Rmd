@@ -276,7 +276,8 @@ This model uses the same parameters as the triplet model, but with a single call
 
 ```{r vectorizer}
 # The vectorizer model is the same spine that we used for the three inputs. We
-# wrap it in a larger constructor so the weight names line up for easier loading.
+# wrap it in a larger constructor so the weight names line up for easier
+# loading.
 vectorizer <- torch::nn_module(
   "vectorizer",
   initialize = function(model_name = "bert_tiny_uncased") {
