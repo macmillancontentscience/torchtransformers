@@ -1,7 +1,7 @@
 # dataset_bert works
 
     Code
-      test_result
+      test_result_df
     Output
       <bert_dataset>
         Inherits from: <dataset>
@@ -17,7 +17,7 @@
 ---
 
     Code
-      test_result$token_types
+      test_result_df$token_types
     Output
       torch_tensor
       Columns 1 to 26 1  1  1  1  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2
@@ -39,7 +39,7 @@
 ---
 
     Code
-      test_result$tokenized_text
+      test_result_df$tokenized_text
     Output
       torch_tensor
       Columns 1 to 13  102  2071  3794   103  2146  2063   103     1     1     1     1     1     1
@@ -76,7 +76,7 @@
 ---
 
     Code
-      test_result$y
+      test_result_df$y
     Output
       torch_tensor
        1
@@ -86,7 +86,7 @@
 ---
 
     Code
-      test_result
+      test_result_factor
     Output
       <bert_dataset>
         Inherits from: <dataset>
@@ -102,7 +102,7 @@
 ---
 
     Code
-      test_result$token_types
+      test_result_factor$token_types
     Output
       torch_tensor
       Columns 1 to 26 1  1  1  1  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2
@@ -124,7 +124,7 @@
 ---
 
     Code
-      test_result$tokenized_text
+      test_result_factor$tokenized_text
     Output
       torch_tensor
       Columns 1 to 13  102  2071  3794   103  2146  2063   103     1     1     1     1     1     1
@@ -161,7 +161,7 @@
 ---
 
     Code
-      test_result$y
+      test_result_factor$y
     Output
       torch_tensor
        1
@@ -171,7 +171,7 @@
 ---
 
     Code
-      test_result
+      test_result_null
     Output
       <bert_dataset>
         Inherits from: <dataset>
@@ -187,7 +187,7 @@
 ---
 
     Code
-      test_result$token_types
+      test_result_null$token_types
     Output
       torch_tensor
       Columns 1 to 26 1  1  1  1  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2
@@ -209,7 +209,7 @@
 ---
 
     Code
-      test_result$tokenized_text
+      test_result_null$tokenized_text
     Output
       torch_tensor
       Columns 1 to 13  102  2071  3794   103  2146  2063   103     1     1     1     1     1     1
@@ -246,7 +246,7 @@
 ---
 
     Code
-      test_result$y
+      test_result_null$y
     Output
       torch_tensor
       [ CPULongType{0} ]
@@ -254,7 +254,7 @@
 ---
 
     Code
-      test_result
+      test_result_tokens
     Output
       <bert_dataset>
         Inherits from: <dataset>
@@ -270,7 +270,7 @@
 ---
 
     Code
-      test_result$token_types
+      test_result_tokens$token_types
     Output
       torch_tensor
       Columns 1 to 26 1  1  1  1  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2
@@ -283,7 +283,7 @@
 ---
 
     Code
-      test_result$tokenized_text
+      test_result_tokens$tokenized_text
     Output
       torch_tensor
       Columns 1 to 13  102  2071  3794   103  2146  2063   103     1     1     1     1     1     1
@@ -299,7 +299,7 @@
 ---
 
     Code
-      test_result$y
+      test_result_tokens$y
     Output
       torch_tensor
        1

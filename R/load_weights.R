@@ -219,10 +219,23 @@ config_bert <- function(model_name,
                           "max_tokens",
                           "vocab_size"
                         )) {
-  stopifnot(
-    length(model_name) == 1,
-    model_name %in% available_berts()
-  )
+  if (length(model_name) > 1) {
+    rlang::abort(
+      message = "Please provide a single model name.",
+      class = "bad_model_name"
+    )
+  }
+
+  if (!(model_name %in% available_berts())) {
+    rlang::abort(
+      message = paste(
+        "model_name must be one of",
+        paste(available_berts(), collapse = ", ")
+      ),
+      class = "bad_model_name"
+    )
+  }
+
   parameter <- match.arg(parameter)
   bert_configs[bert_configs$model_name == model_name,][[parameter]]
 }

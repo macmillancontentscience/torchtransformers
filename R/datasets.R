@@ -27,8 +27,8 @@
 dataset_bert <- torch::dataset(
   name = "bert_dataset",
   initialize = function(x, y = NULL, n_tokens = 128L) {
-    # Eventually this should be exported somewhere. It's a super quick version of
-    # something I'm also implementing in tidybert.
+    # Eventually this should be exported somewhere. It's a super quick version
+    # of something I'm also implementing in tidybert.
     stopifnot(all(purrr::map_lgl(x, is.character)))
 
     tokenized_text <- do.call(
@@ -46,7 +46,7 @@ dataset_bert <- torch::dataset(
     self$token_types <- torch::torch_tensor(tokenized_text$token_type_ids)
 
     # Also supply the labels as tensors.
-    self$y = torch::torch_tensor(as.integer(y))
+    self$y <- torch::torch_tensor(as.integer(y))
   },
   # We extract subsets of this data using an index.
   .getitem = function(index) {
@@ -82,9 +82,14 @@ dataset_bert <- torch::dataset(
 
 #' @export
 .standardize_bert_dataset_outcome.default <- function(y) {
-  stop(
-    "The outcome must be NULL, a factor, or a data.frame with a single factor column",
-    call. = FALSE
+  rlang::abort(
+    message = paste(
+      "The outcome must be NULL,",
+      "a factor,",
+      "or a data.frame with a single factor column"
+    ),
+    class = "bad_outcome",
+    call = rlang::caller_env()
   )
 }
 
