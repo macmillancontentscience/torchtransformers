@@ -67,3 +67,42 @@ test_that("the model_bert module works", {
     c(n_inputs, n_head, n_token_max, n_token_max)
   )
 })
+
+test_that("we can prune head of torchtransformer model", {
+  emb_size <- 128L
+  mpe <- 512L
+  n_head <- 4L
+  n_layer <- 6L
+  vocab_size <- 30522L
+  n_inputs <- 2
+  n_token_max <- 128L
+  t_ids <- matrix(
+    sample(
+      2:vocab_size,
+      size = n_token_max * n_inputs,
+      replace = TRUE
+    ),
+    nrow = n_token_max, ncol = n_inputs
+  )
+  ttype_ids <- matrix(
+    rep(1L, n_token_max * n_inputs),
+    nrow = n_token_max, ncol = n_inputs
+  )
+
+  model <- model_bert(
+    embedding_size = emb_size,
+    n_layer = n_layer,
+    n_head = n_head,
+    max_position_embeddings = mpe,
+    vocab_size = vocab_size
+  )
+  expect_error(prune <- torch::nn_prune_head(model), NA)
+  output  <-  prune(
+    torch::torch_tensor(t_ids),
+    torch::torch_tensor(ttype_ids)
+
+  )
+  expect_equal(output$shape, c(128, 2, 128))
+
+})
+
