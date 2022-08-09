@@ -39,7 +39,6 @@
 #' @keywords internal
 .tokenize_bert_single <- function(text,
                                   n_tokens = 64L,
-                                  simplify = TRUE,
                                   increment_index = TRUE,
                                   pad_token = "[PAD]",
                                   cls_token = "[CLS]",
@@ -53,7 +52,6 @@
 #' @export
 .tokenize_bert_single.default <- function(text,
                                           n_tokens = 64L,
-                                          simplify = TRUE,
                                           increment_index = TRUE,
                                           pad_token = "[PAD]",
                                           cls_token = "[CLS]",
@@ -70,7 +68,6 @@
 #' @export
 .tokenize_bert_single.list <- function(text,
                                        n_tokens = 64L,
-                                       simplify = TRUE,
                                        increment_index = TRUE,
                                        pad_token = "[PAD]",
                                        cls_token = "[CLS]",
@@ -85,7 +82,6 @@
     .tokenize_bert_single(
       unlist(text),
       n_tokens = n_tokens,
-      simplify = simplify,
       pad_token = pad_token,
       cls_token = cls_token,
       sep_token = sep_token,
@@ -111,7 +107,6 @@
 #' @export
 .tokenize_bert_single.character <- function(text,
                                             n_tokens = 64L,
-                                            simplify = TRUE,
                                             increment_index = TRUE,
                                             pad_token = "[PAD]",
                                             cls_token = "[CLS]",
@@ -182,8 +177,7 @@
     .finalize_bert_tokens(
       tokenized_text = tokenized_text,
       token_types = token_types,
-      increment_index = increment_index,
-      simplify = simplify
+      increment_index = increment_index
     )
   )
 }
@@ -197,41 +191,32 @@
 #' @keywords internal
 .finalize_bert_tokens <- function(tokenized_text,
                                   token_types,
-                                  increment_index,
-                                  simplify) {
+                                  increment_index) {
   # Add 1 when necessary.
   if (increment_index) {
     tokenized_text <- increment_list_index(tokenized_text)
   }
 
-  if (simplify) {
-    return(
-      list(
-        token_ids = simplify_bert_token_list(tokenized_text),
-        token_type_ids = simplify_bert_token_list(token_types)
-      )
+  token_names <- purrr::map(tokenized_text, names)
+
+  return(
+    list(
+      token_ids = simplify_bert_token_list(tokenized_text),
+      token_type_ids = simplify_bert_token_list(token_types),
+      token_names = simplify_bert_token_list(token_names)
     )
-  } else {
-    return(
-      list(
-        token_ids = tokenized_text,
-        token_type_ids = token_types
-      )
-    )
-  }
+  )
 }
 
-#' Simplify Token ID List to Matrix
+#' Simplify Token List to Matrix
 #'
 #' BERT-like models expect a matrix of tokens for each example. This function
-#' converts a list of equal-length integer vectors (such as a padded list of
-#' tokens) into such a matrix.
+#' converts a list of equal-length vectors (such as a padded list of tokens)
+#' into such a matrix.
 #'
-#' @param list_of_integers A list of integer vectors. Each integer should have
-#'   the same length.
+#' @param token_list A list of vectors. Each vector should have the same length.
 #'
-#' @return A matrix of token ids. Rows are text sequences, and columns are
-#'   tokens.
+#' @return A matrix of tokens. Rows are text sequences, and columns are tokens.
 #' @export
 #'
 #' @examples
@@ -242,15 +227,14 @@
 #'     3:7
 #'   )
 #' )
-simplify_bert_token_list <- function(list_of_integers) {
+simplify_bert_token_list <- function(token_list) {
   stopifnot(
-    is.list(list_of_integers),
-    purrr::every(list_of_integers, is.integer)
+    is.list(token_list)
   )
-  n_tokens <- length(list_of_integers[[1]])
+  n_tokens <- length(token_list[[1]])
 
   stopifnot(
-    all(lengths(list_of_integers) == n_tokens)
+    all(lengths(token_list) == n_tokens)
   )
 
   # Since we're guaranteed that each token vector has length == n_tokens, we can
@@ -258,7 +242,7 @@ simplify_bert_token_list <- function(list_of_integers) {
   return(
     t(
       matrix(
-        unlist(list_of_integers),
+        unlist(token_list),
         nrow = n_tokens
       )
     )
@@ -313,10 +297,6 @@ increment_list_index <- function(list_of_integers) {
 #'   supplied, they are combined pairwise and separated with \code{sep_token}.
 #' @param n_tokens Integer scalar; the number of tokens expected for each
 #'   example.
-#' @param simplify Logical scalar; whether to return the result as a list
-#'   (\code{FALSE}), or as a matrix. The matrix returned is currently
-#'   \code{n_tokens} rows by \code{length(text)} columns, but we plan to
-#'   transpose that in an upcoming change to the overall package API.
 #' @param increment_index Logical; if TRUE, add 1L to all token ids to convert
 #'   from the Python-inspired 0-indexed standard to the torch 1-indexed
 #'   standard.
@@ -345,7 +325,6 @@ increment_list_index <- function(list_of_integers) {
 #' )
 tokenize_bert <- function(...,
                           n_tokens = 64L,
-                          simplify = TRUE,
                           increment_index = TRUE,
                           pad_token = "[PAD]",
                           cls_token = "[CLS]",
@@ -353,6 +332,7 @@ tokenize_bert <- function(...,
                           tokenizer = wordpiece::wordpiece_tokenize,
                           vocab = wordpiece.data::wordpiece_vocab(),
                           tokenizer_options = NULL) {
+  stop("I think this is largely done (as far as removing simplify), but make sure.")
   # Use wordpiece if they aren't specific.
   tokenizer <- .default_tokenizer(tokenizer)
   vocab <- .default_vocab(vocab)
@@ -409,7 +389,6 @@ tokenize_bert <- function(...,
       .tokenize_bert_single(
         text = dots[[1]],
         n_tokens = n_tokens,
-        simplify = simplify,
         increment_index = increment_index,
         pad_token = pad_token,
         cls_token = cls_token,
@@ -480,8 +459,7 @@ tokenize_bert <- function(...,
     .finalize_bert_tokens(
       tokenized_text = token_ids,
       token_types = token_type_ids,
-      increment_index = increment_index,
-      simplify = simplify
+      increment_index = increment_index
     )
   )
 }
