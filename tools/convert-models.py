@@ -18,7 +18,21 @@ models = {
   "bert-L6H128": "https://huggingface.co/google/bert_uncased_L-6_H-128_A-2/resolve/main/pytorch_model.bin",
   "bert-L8H128": "https://huggingface.co/google/bert_uncased_L-8_H-128_A-2/resolve/main/pytorch_model.bin",
   "bert-L10H128": "https://huggingface.co/google/bert_uncased_L-10_H-128_A-2/resolve/main/pytorch_model.bin",
-  "bert-L12H128": "https://huggingface.co/google/bert_uncased_L-12_H-128_A-2/resolve/main/pytorch_model.bin"
+  "bert-L12H128": "https://huggingface.co/google/bert_uncased_L-12_H-128_A-2/resolve/main/pytorch_model.bin",
+  "bert-L2H256": "https://huggingface.co/google/bert_uncased_L-2_H-256_A-4/resolve/main/pytorch_model.bin",
+  "bert-L6H256": "https://huggingface.co/google/bert_uncased_L-6_H-256_A-4/resolve/main/pytorch_model.bin",
+  "bert-L8H256": "https://huggingface.co/google/bert_uncased_L-8_H-256_A-4/resolve/main/pytorch_model.bin",
+  "bert-L10H256": "https://huggingface.co/google/bert_uncased_L-10_H-256_A-4/resolve/main/pytorch_model.bin",
+  "bert-L12H256": "https://huggingface.co/google/bert_uncased_L-12_H-256_A-4/resolve/main/pytorch_model.bin",
+  "bert-L2H512": "https://huggingface.co/google/bert_uncased_L-2_H-512_A-8/resolve/main/pytorch_model.bin",
+  "bert-L6H512": "https://huggingface.co/google/bert_uncased_L-6_H-512_A-8/resolve/main/pytorch_model.bin",
+  "bert-L10H512": "https://huggingface.co/google/bert_uncased_L-10_H-512_A-8/resolve/main/pytorch_model.bin",
+  "bert-L12H512": "https://huggingface.co/google/bert_uncased_L-12_H-512_A-8/resolve/main/pytorch_model.bin",
+  "bert-L2H768": "https://huggingface.co/google/bert_uncased_L-2_H-786_A-12/resolve/main/pytorch_model.bin",
+  "bert-L4H768": "https://huggingface.co/google/bert_uncased_L-4_H-786_A-12/resolve/main/pytorch_model.bin",
+  "bert-L6H768": "https://huggingface.co/google/bert_uncased_L-6_H-786_A-12/resolve/main/pytorch_model.bin",
+  "bert-L8H768": "https://huggingface.co/google/bert_uncased_L-8_H-786_A-12/resolve/main/pytorch_model.bin",
+  "bert-L10H768": "https://huggingface.co/google/bert_uncased_L-10_H-786_A-12/resolve/main/pytorch_model.bin"
 }
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
