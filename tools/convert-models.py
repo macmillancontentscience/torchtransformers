@@ -14,7 +14,11 @@ models = {
   "bert-mini": "https://huggingface.co/prajjwal1/bert-mini/resolve/main/pytorch_model.bin",
   "bert-small": "https://huggingface.co/prajjwal1/bert-small/resolve/main/pytorch_model.bin",
   "bert-medium": "https://huggingface.co/prajjwal1/bert-medium/resolve/main/pytorch_model.bin",
-  "bert-L4H128": "https://huggingface.co/google/bert_uncased_L-4_H-128_A-2/resolve/main/pytorch_model.bin"
+  "bert-L4H128": "https://huggingface.co/google/bert_uncased_L-4_H-128_A-2/resolve/main/pytorch_model.bin",
+  "bert-L6H128": "https://huggingface.co/google/bert_uncased_L-6_H-128_A-2/resolve/main/pytorch_model.bin",
+  "bert-L8H128": "https://huggingface.co/google/bert_uncased_L-8_H-128_A-2/resolve/main/pytorch_model.bin",
+  "bert-L10H128": "https://huggingface.co/google/bert_uncased_L-10_H-128_A-2/resolve/main/pytorch_model.bin",
+  "bert-L12H128": "https://huggingface.co/google/bert_uncased_L-12_H-128_A-2/resolve/main/pytorch_model.bin"
 }
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):

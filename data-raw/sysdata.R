@@ -17,10 +17,11 @@ base_url <- "https://storage.googleapis.com/torchtransformers-models/"
 # maybe later store as a tibble with more info, but named vector is ok for now.
 
 weights_url_map <- c(
-  "bert_L4H128_uncased" = paste0(
-    base_url,
-    "bert-L4H128/v1/weights.pt"
-  ),
+  "bert_L4H128_uncased" = paste0(base_url, "bert-L4H128/v1/weights.pt"),
+  "bert_L6H128_uncased" = paste0(base_url, "bert-L6H128/v1/weights.pt"),
+  "bert_L8H128_uncased" = paste0(base_url, "bert-L8H128/v1/weights.pt"),
+  "bert_L10H128_uncased" = paste0(base_url, "bert-L10H128/v1/weights.pt"),
+  "bert_L12H128_uncased" = paste0(base_url, "bert-L12H128/v1/weights.pt"),
   "bert_tiny_uncased" = paste0(
     base_url,
     "bert-tiny/v1/weights.pt"
@@ -74,6 +75,10 @@ variable_names_replacement_rules <- c(
 bert_configs <- tibble::tribble(
   ~model_name, ~embedding_size, ~n_layer, ~n_head, ~max_tokens, ~vocab_size,
   "bert_L4H128_uncased", 128L, 4L, 2L, 512L, 30522L,
+  "bert_L6H128_uncased", 128L, 6L, 2L, 512L, 30522L,
+  "bert_L8H128_uncased", 128L, 8L, 2L, 512L, 30522L,
+  "bert_L10H128_uncased", 128L, 10L, 2L, 512L, 30522L,
+  "bert_L12H128_uncased", 128L, 12L, 2L, 512L, 30522L,
   "bert_tiny_uncased", 128L, 2L, 2L, 512L, 30522L,
   "bert_mini_uncased", 256L, 4L, 4L, 512L, 30522L,
   "bert_small_uncased", 512L, 4L, 8L, 512L, 30522L,
