@@ -31,11 +31,11 @@ weights_url_map <- c(
   "bert_L6H512_uncased" = paste0(base_url, "bert-L6H512/v1/weights.pt"),
   "bert_L10H512_uncased" = paste0(base_url, "bert-L10H512/v1/weights.pt"),
   "bert_L12H512_uncased" = paste0(base_url, "bert-L12H512/v1/weights.pt"),
-  "bert_L2H786_uncased" = paste0(base_url, "bert-L2H786/v1/weights.pt"),
-  "bert_L4H786_uncased" = paste0(base_url, "bert-L4H786/v1/weights.pt"),
-  "bert_L6H786_uncased" = paste0(base_url, "bert-L6H786/v1/weights.pt"),
-  "bert_L8H786_uncased" = paste0(base_url, "bert-L8H786/v1/weights.pt"),
-  "bert_L10H786_uncased" = paste0(base_url, "bert-L10H786/v1/weights.pt"),
+  "bert_L2H768_uncased" = paste0(base_url, "bert-L2H768/v1/weights.pt"),
+  "bert_L4H768_uncased" = paste0(base_url, "bert-L4H768/v1/weights.pt"),
+  "bert_L6H768_uncased" = paste0(base_url, "bert-L6H768/v1/weights.pt"),
+  "bert_L8H768_uncased" = paste0(base_url, "bert-L8H768/v1/weights.pt"),
+  "bert_L10H768_uncased" = paste0(base_url, "bert-L10H768/v1/weights.pt"),
   "bert_tiny_uncased" = paste0(
     base_url,
     "bert-tiny/v1/weights.pt"
