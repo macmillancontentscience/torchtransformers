@@ -17,18 +17,29 @@ base_url <- "https://storage.googleapis.com/torchtransformers-models/"
 # maybe later store as a tibble with more info, but named vector is ok for now.
 
 weights_url_map <- c(
+  # Some of the urls below are repeated with different names. (Noted with `#`.)
+  # e.g. both "bert_L2H128_uncased" and "bert-tiny" point to the same model.
+  # But note! Although "bert_L12H768_uncased" is a "bert-base" model, with all
+  # the same hyperparameters, it points to a _different_ set of pretrained
+  # weights than "bert_base_uncased" does. The latter points to the original
+  # released bert-base model weights, while the former points to the re-trained
+  # model weights from the miniature BERT collection.
+  "bert_L2H128_uncased" = paste0(base_url, "bert-tiny/v1/weights.pt"), #
   "bert_L4H128_uncased" = paste0(base_url, "bert-L4H128/v1/weights.pt"),
   "bert_L6H128_uncased" = paste0(base_url, "bert-L6H128/v1/weights.pt"),
   "bert_L8H128_uncased" = paste0(base_url, "bert-L8H128/v1/weights.pt"),
   "bert_L10H128_uncased" = paste0(base_url, "bert-L10H128/v1/weights.pt"),
   "bert_L12H128_uncased" = paste0(base_url, "bert-L12H128/v1/weights.pt"),
   "bert_L2H256_uncased" = paste0(base_url, "bert-L2H256/v1/weights.pt"),
+  "bert_L4H256_uncased" = paste0(base_url, "bert_mini_uncased/v1/weights.pt"), #
   "bert_L6H256_uncased" = paste0(base_url, "bert-L6H256/v1/weights.pt"),
   "bert_L8H256_uncased" = paste0(base_url, "bert-L8H256/v1/weights.pt"),
   "bert_L10H256_uncased" = paste0(base_url, "bert-L10H256/v1/weights.pt"),
   "bert_L12H256_uncased" = paste0(base_url, "bert-L12H256/v1/weights.pt"),
   "bert_L2H512_uncased" = paste0(base_url, "bert-L2H512/v1/weights.pt"),
+  "bert_L4H512_uncased" = paste0(base_url, "bert-small/v1/weights.pt"), #
   "bert_L6H512_uncased" = paste0(base_url, "bert-L6H512/v1/weights.pt"),
+  "bert_L8H512_uncased" = paste0(base_url, "bert-medium/v1/weights.pt"), #
   "bert_L10H512_uncased" = paste0(base_url, "bert-L10H512/v1/weights.pt"),
   "bert_L12H512_uncased" = paste0(base_url, "bert-L12H512/v1/weights.pt"),
   "bert_L2H768_uncased" = paste0(base_url, "bert-L2H768/v1/weights.pt"),
@@ -36,6 +47,7 @@ weights_url_map <- c(
   "bert_L6H768_uncased" = paste0(base_url, "bert-L6H768/v1/weights.pt"),
   "bert_L8H768_uncased" = paste0(base_url, "bert-L8H768/v1/weights.pt"),
   "bert_L10H768_uncased" = paste0(base_url, "bert-L10H768/v1/weights.pt"),
+  "bert_L12H768_uncased" = paste0(base_url, "bert-L12H768/v1/weights.pt"),
   "bert_tiny_uncased" = paste0(
     base_url,
     "bert-tiny/v1/weights.pt"
@@ -88,18 +100,22 @@ variable_names_replacement_rules <- c(
 # "intermediate size" is always 4x the embedding size for these models.
 bert_configs <- tibble::tribble(
   ~model_name, ~embedding_size, ~n_layer, ~n_head, ~max_tokens, ~vocab_size,
+  "bert_L2H128_uncased", 128L, 2L, 2L, 512L, 30522L, # see note above
   "bert_L4H128_uncased", 128L, 4L, 2L, 512L, 30522L,
   "bert_L6H128_uncased", 128L, 6L, 2L, 512L, 30522L,
   "bert_L8H128_uncased", 128L, 8L, 2L, 512L, 30522L,
   "bert_L10H128_uncased", 128L, 10L, 2L, 512L, 30522L,
   "bert_L12H128_uncased", 128L, 12L, 2L, 512L, 30522L,
   "bert_L2H256_uncased", 256L, 2L, 4L, 512L, 30522L,
+  "bert_L4H256_uncased", 256L, 4L, 4L, 512L, 30522L, #
   "bert_L6H256_uncased", 256L, 6L, 4L, 512L, 30522L,
   "bert_L8H256_uncased", 256L, 8L, 4L, 512L, 30522L,
   "bert_L10H256_uncased", 256L, 10L, 4L, 512L, 30522L,
   "bert_L12H256_uncased", 256L, 12L, 4L, 512L, 30522L,
   "bert_L2H512_uncased", 512L, 2L, 8L, 512L, 30522L,
+  "bert_L4H512_uncased", 512L, 4L, 8L, 512L, 30522L, #
   "bert_L6H512_uncased", 512L, 6L, 8L, 512L, 30522L,
+  "bert_L8H512_uncased", 512L, 8L, 8L, 512L, 30522L, #
   "bert_L10H512_uncased", 512L, 10L, 8L, 512L, 30522L,
   "bert_L12H512_uncased", 512L, 12L, 8L, 512L, 30522L,
   "bert_L2H768_uncased", 768L, 2L, 12L, 512L, 30522L,
@@ -107,6 +123,7 @@ bert_configs <- tibble::tribble(
   "bert_L6H768_uncased", 768L, 6L, 12L, 512L, 30522L,
   "bert_L8H768_uncased", 768L, 8L, 12L, 512L, 30522L,
   "bert_L10H768_uncased", 768L, 10L, 12L, 512L, 30522L,
+  "bert_L12H768_uncased", 768L, 12L, 12L, 512L, 30522L,
   "bert_tiny_uncased", 128L, 2L, 2L, 512L, 30522L,
   "bert_mini_uncased", 256L, 4L, 4L, 512L, 30522L,
   "bert_small_uncased", 512L, 4L, 8L, 512L, 30522L,

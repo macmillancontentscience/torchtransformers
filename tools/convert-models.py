@@ -10,10 +10,10 @@ models = {
   "bert-base-cased": "https://huggingface.co/bert-base-cased/resolve/main/pytorch_model.bin",
   "bert-large-uncased": "https://huggingface.co/bert-large-uncased/resolve/main/pytorch_model.bin",
   "bert-large-cased": "https://huggingface.co/bert-large-cased/resolve/main/pytorch_model.bin",
-  "bert-tiny": "https://huggingface.co/prajjwal1/bert-tiny/resolve/main/pytorch_model.bin",
-  "bert-mini": "https://huggingface.co/prajjwal1/bert-mini/resolve/main/pytorch_model.bin",
-  "bert-small": "https://huggingface.co/prajjwal1/bert-small/resolve/main/pytorch_model.bin",
-  "bert-medium": "https://huggingface.co/prajjwal1/bert-medium/resolve/main/pytorch_model.bin",
+  "bert-tiny": "https://huggingface.co/google/bert_uncased_L-2_H-128_A-2/resolve/main/pytorch_model.bin",
+  "bert-mini": "https://huggingface.co/google/bert_uncased_L-4_H-256_A-4/resolve/main/pytorch_model.bin",
+  "bert-small": "https://huggingface.co/google/bert_uncased_L-4_H-512_A-8/resolve/main/pytorch_model.bin",
+  "bert-medium": "https://huggingface.co/google/bert_uncased_L-8_H-512_A-8/resolve/main/pytorch_model.bin",
   "bert-L4H128": "https://huggingface.co/google/bert_uncased_L-4_H-128_A-2/resolve/main/pytorch_model.bin",
   "bert-L6H128": "https://huggingface.co/google/bert_uncased_L-6_H-128_A-2/resolve/main/pytorch_model.bin",
   "bert-L8H128": "https://huggingface.co/google/bert_uncased_L-8_H-128_A-2/resolve/main/pytorch_model.bin",
@@ -33,6 +33,7 @@ models = {
   "bert-L6H768": "https://huggingface.co/google/bert_uncased_L-6_H-768_A-12/resolve/main/pytorch_model.bin",
   "bert-L8H768": "https://huggingface.co/google/bert_uncased_L-8_H-768_A-12/resolve/main/pytorch_model.bin",
   "bert-L10H768": "https://huggingface.co/google/bert_uncased_L-10_H-768_A-12/resolve/main/pytorch_model.bin"
+  "bert-L12H768": "https://huggingface.co/google/bert_uncased_L-12_H-768_A-12/resolve/main/pytorch_model.bin"
 }
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
