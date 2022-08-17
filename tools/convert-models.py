@@ -32,7 +32,7 @@ models = {
   "bert-L4H768": "https://huggingface.co/google/bert_uncased_L-4_H-768_A-12/resolve/main/pytorch_model.bin",
   "bert-L6H768": "https://huggingface.co/google/bert_uncased_L-6_H-768_A-12/resolve/main/pytorch_model.bin",
   "bert-L8H768": "https://huggingface.co/google/bert_uncased_L-8_H-768_A-12/resolve/main/pytorch_model.bin",
-  "bert-L10H768": "https://huggingface.co/google/bert_uncased_L-10_H-768_A-12/resolve/main/pytorch_model.bin"
+  "bert-L10H768": "https://huggingface.co/google/bert_uncased_L-10_H-768_A-12/resolve/main/pytorch_model.bin",
   "bert-L12H768": "https://huggingface.co/google/bert_uncased_L-12_H-768_A-12/resolve/main/pytorch_model.bin"
 }
 
