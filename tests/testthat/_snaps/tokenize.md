@@ -36,6 +36,12 @@
       [2,]    1    1    1    1    1    1
       [3,]    1    1    1    1    1    1
       
+      $token_names
+           [,1]    [,2]      [,3]      [,4]      [,5]    [,6]   
+      [1,] "[CLS]" "an"      "example" "with"    "quite" "[SEP]"
+      [2,] "[CLS]" "a"       "short"   "example" "."     "[SEP]"
+      [3,] "[CLS]" "another" "one"     "."       "[SEP]" "[PAD]"
+      
 
 ---
 
@@ -54,36 +60,11 @@
       [2,]    1    1    1    1    1    1
       [3,]    1    1    1    1    1    1
       
-
----
-
-    Code
-      tokenize_bert(text = to_tokenize, n_tokens = 6, simplify = FALSE)
-    Output
-      $token_ids
-      $token_ids[[1]]
-        [CLS]      an example    with   quite   [SEP] 
-          102    2020    2743    2008    3244     103 
-      
-      $token_ids[[2]]
-        [CLS]       a   short example       .   [SEP] 
-          102    1038    2461    2743    1013     103 
-      
-      $token_ids[[3]]
-        [CLS] another     one       .   [SEP]   [PAD] 
-          102    2179    2029    1013     103       1 
-      
-      
-      $token_type_ids
-      $token_type_ids[[1]]
-      [1] 1 1 1 1 1 1
-      
-      $token_type_ids[[2]]
-      [1] 1 1 1 1 1 1
-      
-      $token_type_ids[[3]]
-      [1] 1 1 1 1 1 1
-      
+      $token_names
+           [,1]    [,2]      [,3]      [,4]      [,5]    [,6]   
+      [1,] "[CLS]" "an"      "example" "with"    "quite" "[SEP]"
+      [2,] "[CLS]" "a"       "short"   "example" "."     "[SEP]"
+      [3,] "[CLS]" "another" "one"     "."       "[SEP]" "[PAD]"
       
 
 ---
@@ -103,37 +84,11 @@
       [2,]    1    1    1    1    1    1
       [3,]    1    1    1    1    1    1
       
-
----
-
-    Code
-      tokenize_bert(text = to_tokenize, n_tokens = 6, simplify = FALSE,
-        increment_index = FALSE)
-    Output
-      $token_ids
-      $token_ids[[1]]
-        [CLS]      an example    with   quite   [SEP] 
-          101    2019    2742    2007    3243     102 
-      
-      $token_ids[[2]]
-        [CLS]       a   short example       .   [SEP] 
-          101    1037    2460    2742    1012     102 
-      
-      $token_ids[[3]]
-        [CLS] another     one       .   [SEP]   [PAD] 
-          101    2178    2028    1012     102       0 
-      
-      
-      $token_type_ids
-      $token_type_ids[[1]]
-      [1] 1 1 1 1 1 1
-      
-      $token_type_ids[[2]]
-      [1] 1 1 1 1 1 1
-      
-      $token_type_ids[[3]]
-      [1] 1 1 1 1 1 1
-      
+      $token_names
+           [,1]    [,2]      [,3]      [,4]      [,5]    [,6]   
+      [1,] "[CLS]" "an"      "example" "with"    "quite" "[SEP]"
+      [2,] "[CLS]" "a"       "short"   "example" "."     "[SEP]"
+      [3,] "[CLS]" "another" "one"     "."       "[SEP]" "[PAD]"
       
 
 # tokenizing works for 2-segment sequences
@@ -181,6 +136,34 @@
       [1,]     2     2
       [2,]     2     2
       
+      $token_names
+           [,1]    [,2]   [,3] [,4]      [,5]     [,6]       [,7]     [,8]      
+      [1,] "[CLS]" "this" "is" "a"       "sample" "sentence" "."      "[SEP]"   
+      [2,] "[CLS]" "this" "is" "another" ","      "longer"   "sample" "sentence"
+           [,9]   [,10]   [,11]  [,12]    [,13]      [,14] [,15]    [,16]   
+      [1,] "this" "is"    "a"    "sample" "sentence" "."   "[SEP]"  "[PAD]" 
+      [2,] "."    "[SEP]" "this" "is"     "another"  ","   "longer" "sample"
+           [,17]      [,18]   [,19]   [,20]   [,21]   [,22]   [,23]   [,24]   [,25]  
+      [1,] "[PAD]"    "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+      [2,] "sentence" "."     "[SEP]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+           [,26]   [,27]   [,28]   [,29]   [,30]   [,31]   [,32]   [,33]   [,34]  
+      [1,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+      [2,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+           [,35]   [,36]   [,37]   [,38]   [,39]   [,40]   [,41]   [,42]   [,43]  
+      [1,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+      [2,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+           [,44]   [,45]   [,46]   [,47]   [,48]   [,49]   [,50]   [,51]   [,52]  
+      [1,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+      [2,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+           [,53]   [,54]   [,55]   [,56]   [,57]   [,58]   [,59]   [,60]   [,61]  
+      [1,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+      [2,] "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]" "[PAD]"
+           [,62]   [,63]   [,64]  
+      [1,] "[PAD]" "[PAD]" "[PAD]"
+      [2,] "[PAD]" "[PAD]" "[PAD]"
+      
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 
 ---
 
@@ -197,6 +180,16 @@
       [1,]    1    1    1    1    1    1    2    2    2     2     2
       [2,]    1    1    1    1    1    1    2    2    2     2     2
       
+      $token_names
+           [,1]    [,2]   [,3] [,4]      [,5]     [,6]    [,7]   [,8] [,9]     
+      [1,] "[CLS]" "this" "is" "a"       "sample" "[SEP]" "this" "is" "a"      
+      [2,] "[CLS]" "this" "is" "another" ","      "[SEP]" "this" "is" "another"
+           [,10]    [,11]  
+      [1,] "sample" "[SEP]"
+      [2,] ","      "[SEP]"
+      
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 
 ---
 
@@ -213,6 +206,16 @@
       [1,]    1    1    1    1    1    1    2    2    2     2
       [2,]    1    1    1    1    1    1    2    2    2     2
       
+      $token_names
+           [,1]    [,2]   [,3] [,4]      [,5]     [,6]    [,7]   [,8] [,9]     
+      [1,] "[CLS]" "this" "is" "a"       "sample" "[SEP]" "this" "is" "a"      
+      [2,] "[CLS]" "this" "is" "another" ","      "[SEP]" "this" "is" "another"
+           [,10]  
+      [1,] "[SEP]"
+      [2,] "[SEP]"
+      
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 
 ---
 
@@ -229,6 +232,16 @@
       [1,]    1    1    1    1    1    1    2    2    2     2
       [2,]    1    1    1    1    1    1    2    2    2     2
       
+      $token_names
+           [,1]    [,2]   [,3] [,4]      [,5]     [,6]    [,7]   [,8] [,9]     
+      [1,] "[CLS]" "this" "is" "a"       "sample" "[SEP]" "this" "is" "another"
+      [2,] "[CLS]" "this" "is" "another" ","      "[SEP]" "this" "is" "a"      
+           [,10]  
+      [1,] "[SEP]"
+      [2,] "[SEP]"
+      
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 
 ---
 
@@ -245,4 +258,14 @@
       [1,]    1    1    1    1    1    1    2    2    2     2     2
       [2,]    1    1    1    1    1    1    2    2    2     2     2
       
+      $token_names
+           [,1]    [,2]   [,3] [,4]      [,5]     [,6]    [,7]   [,8] [,9]     
+      [1,] "[CLS]" "this" "is" "a"       "sample" "[SEP]" "this" "is" "another"
+      [2,] "[CLS]" "this" "is" "another" ","      "[SEP]" "this" "is" "a"      
+           [,10]    [,11]  
+      [1,] ","      "[SEP]"
+      [2,] "sample" "[SEP]"
+      
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 

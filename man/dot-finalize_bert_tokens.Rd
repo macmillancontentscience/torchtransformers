@@ -4,7 +4,7 @@
 \alias{.finalize_bert_tokens}
 \title{Clean and Return BERT Tokens}
 \usage{
-.finalize_bert_tokens(tokenized_text, token_types, increment_index, simplify)
+.finalize_bert_tokens(tokenized_text, token_types, increment_index)
 }
 \arguments{
 \item{tokenized_text}{A list of integer vectors of token ids.}
@@ -15,15 +15,10 @@ belong to.}
 \item{increment_index}{Logical; if TRUE, add 1L to all token ids to convert
 from the Python-inspired 0-indexed standard to the torch 1-indexed
 standard.}
-
-\item{simplify}{Logical scalar; whether to return the result as a list
-(\code{FALSE}), or as a matrix. The matrix returned is currently
-\code{n_tokens} rows by \code{length(text)} columns, but we plan to
-transpose that in an upcoming change to the overall package API.}
 }
 \value{
-A list containing a list or matrix of token ids, and a list or matrix
-  of token type ids.
+An object of class "bert_tokens", which is a list containing a matrix
+  of token ids, a matrix of token type ids, and a matrix of token names.
 }
 \description{
 Clean and Return BERT Tokens

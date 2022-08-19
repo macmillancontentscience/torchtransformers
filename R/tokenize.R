@@ -314,8 +314,8 @@ increment_list_index <- function(list_of_integers) {
 #' @param tokenizer_options A named list of additional arguments to pass on to
 #'   the tokenizer.
 #'
-#' @return A list containing a list or matrix of token ids, and a list or matrix
-#'   of token type ids.
+#' @return An object of class "bert_tokens", which is a list containing a matrix
+#'   of token ids, a matrix of token type ids, and a matrix of token names.
 #' @export
 #'
 #' @examples
@@ -332,8 +332,7 @@ tokenize_bert <- function(...,
                           tokenizer = wordpiece::wordpiece_tokenize,
                           vocab = wordpiece.data::wordpiece_vocab(),
                           tokenizer_options = NULL) {
-  stop("I think this is largely done (as far as removing simplify), but make sure.")
-  # Use wordpiece if they aren't specific.
+  # Use uncased wordpiece if they aren't specific.
   tokenizer <- .default_tokenizer(tokenizer)
   vocab <- .default_vocab(vocab)
 
@@ -455,12 +454,15 @@ tokenize_bert <- function(...,
 
   # The return process is the same from here on out regardless of which method
   # was used, so we call a function to deal with the remaining bits.
+  to_return <- .finalize_bert_tokens(
+    tokenized_text = token_ids,
+    token_types = token_type_ids,
+    increment_index = increment_index
+  )
   return(
-    .finalize_bert_tokens(
-      tokenized_text = token_ids,
-      token_types = token_type_ids,
-      increment_index = increment_index
-    )
+    structure(to_return,
+              # TODO: include metadata: tokenizer, vocab, options
+              "class" = c("bert_tokens", class(to_return)))
   )
 }
 
