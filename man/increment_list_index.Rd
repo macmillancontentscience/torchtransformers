@@ -6,10 +6,6 @@
 \usage{
 increment_list_index(list_of_integers)
 }
-\arguments{
-\item{list_of_integers}{A list of integer vectors. Each integer should have
-the same length.}
-}
 \value{
 The list of integers, with 1 added to each integer.
 }

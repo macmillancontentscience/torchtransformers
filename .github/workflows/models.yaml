@@ -5,10 +5,10 @@ on:
 
 jobs:
   upload:
-    runs-on: macos-10.15
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      - uses: google-github-actions/setup-gcloud@v0
         with:
           version: '290.0.1'
           project_id: ${{ secrets.GCP_PROJECT_ID }}

@@ -61,21 +61,6 @@ test_that("tokenize_bert returns data in the expected shapes", {
     tokenize_bert(
       text = to_tokenize,
       n_tokens = 6,
-      simplify = FALSE
-    )
-  )
-  expect_snapshot(
-    tokenize_bert(
-      text = to_tokenize,
-      n_tokens = 6,
-      increment_index = FALSE
-    )
-  )
-  expect_snapshot(
-    tokenize_bert(
-      text = to_tokenize,
-      n_tokens = 6,
-      simplify = FALSE,
       increment_index = FALSE
     )
   )

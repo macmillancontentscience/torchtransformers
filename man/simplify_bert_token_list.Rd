@@ -2,22 +2,20 @@
 % Please edit documentation in R/tokenize.R
 \name{simplify_bert_token_list}
 \alias{simplify_bert_token_list}
-\title{Simplify Token ID List to Matrix}
+\title{Simplify Token List to Matrix}
 \usage{
-simplify_bert_token_list(list_of_integers)
+simplify_bert_token_list(token_list)
 }
 \arguments{
-\item{list_of_integers}{A list of integer vectors. Each integer should have
-the same length.}
+\item{token_list}{A list of vectors. Each vector should have the same length.}
 }
 \value{
-A matrix of token ids. Rows are text sequences, and columns are
-  tokens.
+A matrix of tokens. Rows are text sequences, and columns are tokens.
 }
 \description{
 BERT-like models expect a matrix of tokens for each example. This function
-converts a list of equal-length integer vectors (such as a padded list of
-tokens) into such a matrix.
+converts a list of equal-length vectors (such as a padded list of tokens)
+into such a matrix.
 }
 \examples{
 simplify_bert_token_list(

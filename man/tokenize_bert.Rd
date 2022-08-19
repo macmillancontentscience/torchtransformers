@@ -7,7 +7,6 @@
 tokenize_bert(
   ...,
   n_tokens = 64L,
-  simplify = TRUE,
   increment_index = TRUE,
   pad_token = "[PAD]",
   cls_token = "[CLS]",
@@ -25,11 +24,6 @@ supplied, they are combined pairwise and separated with \code{sep_token}.}
 
 \item{n_tokens}{Integer scalar; the number of tokens expected for each
 example.}
-
-\item{simplify}{Logical scalar; whether to return the result as a list
-(\code{FALSE}), or as a matrix. The matrix returned is currently
-\code{n_tokens} rows by \code{length(text)} columns, but we plan to
-transpose that in an upcoming change to the overall package API.}
 
 \item{increment_index}{Logical; if TRUE, add 1L to all token ids to convert
 from the Python-inspired 0-indexed standard to the torch 1-indexed
@@ -55,8 +49,8 @@ include the \code{pad_token, cls_token, and sep_token}.}
 the tokenizer.}
 }
 \value{
-A list containing a list or matrix of token ids, and a list or matrix
-  of token type ids.
+An object of class "bert_tokens", which is a list containing a matrix
+  of token ids, a matrix of token type ids, and a matrix of token names.
 }
 \description{
 To be used in a BERT-style model, text must be tokenized. In addition, text

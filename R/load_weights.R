@@ -244,6 +244,15 @@ config_bert <- function(model_name,
 #'
 #' List the BERT models that are defined for this package.
 #'
+#' Note that some of the models listed here are actually repeats, listed under
+#' different names. For example, "bert_L2H128_uncased" and "bert_tiny_uncased"
+#' point to the same underlying weights. In general, models with the same values
+#' of hyperparameters (accessed by `config_bert`) are identical. However, there
+#' is one exception to this: the "bert_base_uncased" and "bert_L12H768_uncased"
+#' models have the same hyperparameters and training regime, but are actually
+#' distinct models with different actual weights. Any differences between the
+#' models are presumably attributable to different random seeds.
+#'
 #' @return A character vector of model names.
 #' @export
 #'
