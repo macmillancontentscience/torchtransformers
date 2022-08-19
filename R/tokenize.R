@@ -199,12 +199,16 @@
 
   token_names <- purrr::map(tokenized_text, names)
 
-  return(
-    list(
+  to_return <- list(
       token_ids = simplify_bert_token_list(tokenized_text),
       token_type_ids = simplify_bert_token_list(token_types),
       token_names = simplify_bert_token_list(token_names)
     )
+
+  return(
+    structure(to_return,
+              # TODO: include metadata: tokenizer, vocab, options
+              "class" = c("bert_tokens", class(to_return)))
   )
 }
 
@@ -454,15 +458,13 @@ tokenize_bert <- function(...,
 
   # The return process is the same from here on out regardless of which method
   # was used, so we call a function to deal with the remaining bits.
-  to_return <- .finalize_bert_tokens(
-    tokenized_text = token_ids,
-    token_types = token_type_ids,
-    increment_index = increment_index
-  )
+
   return(
-    structure(to_return,
-              # TODO: include metadata: tokenizer, vocab, options
-              "class" = c("bert_tokens", class(to_return)))
+    .finalize_bert_tokens(
+      tokenized_text = token_ids,
+      token_types = token_type_ids,
+      increment_index = increment_index
+    )
   )
 }
 

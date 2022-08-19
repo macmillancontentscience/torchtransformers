@@ -42,6 +42,8 @@
       [2,] "[CLS]" "a"       "short"   "example" "."     "[SEP]"
       [3,] "[CLS]" "another" "one"     "."       "[SEP]" "[PAD]"
       
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 
 ---
 
@@ -66,6 +68,8 @@
       [2,] "[CLS]" "a"       "short"   "example" "."     "[SEP]"
       [3,] "[CLS]" "another" "one"     "."       "[SEP]" "[PAD]"
       
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 
 ---
 
@@ -90,6 +94,8 @@
       [2,] "[CLS]" "a"       "short"   "example" "."     "[SEP]"
       [3,] "[CLS]" "another" "one"     "."       "[SEP]" "[PAD]"
       
+      attr(,"class")
+      [1] "bert_tokens" "list"       
 
 # tokenizing works for 2-segment sequences
 
