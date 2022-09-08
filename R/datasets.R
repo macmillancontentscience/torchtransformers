@@ -19,6 +19,8 @@
 #' @param x A data.frame with one or more character predictor columns.
 #' @param y A factor of outcomes, or a data.frame with a single factor column.
 #'   Can be NULL (default).
+#' @param tokenizer A tokenization function (signature compatible with
+#'   `tokenize_bert`).
 #' @inheritParams tokenize_bert
 #'
 #' @return An initialized \code{\link[torch]{dataset}}.
@@ -26,13 +28,13 @@
 #' @export
 dataset_bert <- torch::dataset(
   name = "bert_dataset",
-  initialize = function(x, y = NULL, n_tokens = 128L) {
+  initialize = function(x, y = NULL, tokenizer, n_tokens = 128L) {
     # Eventually this should be exported somewhere. It's a super quick version
     # of something I'm also implementing in tidybert.
     stopifnot(all(purrr::map_lgl(x, is.character)))
 
     tokenized_text <- do.call(
-      tokenize_bert,
+      tokenizer,
       c(
         x,
         list(n_tokens = n_tokens)

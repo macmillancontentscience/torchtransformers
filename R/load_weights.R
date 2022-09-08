@@ -12,6 +12,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# look up tokenizer and vocab ---------------------------------------------
+
+#' Look up Tokenizer Function
+#'
+#' Given a string representing the name of a tokenization algorithm, return the
+#' corresponding tokenization function.
+#'
+#' @param tokenizer_name Character; the name of the tokenization algorithm.
+#'
+#' @return The function implementing the specified algorithm.
+#' @keywords internal
+.get_tokenizer <- function(tokenizer_name) {
+  switch(tokenizer_name,
+         "wordpiece" = return(wordpiece::wordpiece_tokenize),
+         "morphemepiece" = stop("morphemepiece tokenizer not yet supported"),
+         "sentencepiece" = stop("sentencepiece tokenizer not yet supported"),
+         stop("unrecognized tokenizer: ", tokenizer_name)
+  )
+  # if (tokenizer_name == "wordpiece") {
+  #   return(wordpiece::wordpiece_tokenize)
+  # } else if (tokenizer_name == "morphemepiece") {
+  #   stop("morphemepiece tokenizer not yet supported")
+  # } else if (tokenizer_name == "sentencepiece") {
+  #   stop("sentencepiece tokenizer not yet supported")
+  # } else {
+  #   stop("unrecognized tokenizer: ", tokenizer_name)
+  # }
+}
+
+#' Look up Token Vocabulary
+#'
+#' Given a string representing the name of a token vocabulary, return the
+#' vocabulary.
+#'
+#' @param vocab_name Character; the name of the vocabulary.
+#'
+#' @return The specified token vocabulary.
+#' @keywords internal
+.get_token_vocab <- function(vocab_name) {
+  switch(vocab_name,
+         "bert_en_uncased" = return(wordpiece.data::wordpiece_vocab(cased = FALSE)),
+         "bert_en_cased" = return(wordpiece.data::wordpiece_vocab(cased = TRUE)),
+         stop("unrecognized vocabulary: ", vocab_name)
+  )
+  # if (vocab_name == "bert_en_uncased") {
+  #   return(wordpiece.data::wordpiece_vocab(cased = FALSE))
+  # } else if (vocab_name == "bert_en_cased") {
+  #   return(wordpiece.data::wordpiece_vocab(cased = TRUE))
+  # } else {
+  #   stop("unrecognized vocabulary: ", vocab_name)
+  # }
+}
+
 # make_and_load_bert ------------------------------------------------------
 
 
@@ -33,6 +87,11 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
   }
   params <- bert_configs[bert_configs$model_name == model_name, ]
 
+
+  # look up tokenizer, vocab
+  tokenizer <- .get_tokenizer(params$tokenizer)
+  vocab <- .get_token_vocab(params$vocab)
+
   model <- model_bert(
     embedding_size = params$embedding_size,
     n_layer = params$n_layer,
@@ -41,9 +100,32 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
     vocab_size = params$vocab_size
   )
   .load_weights(model, model_name)
-  return(model)
-}
 
+  # attach tokenizer, etc. to model.
+  # something like:
+  stuff <- list("config_info" = params,
+                "tokenize" = function(..., n_tokens = 512L) { # let's talk about defaults
+                  tokenize_bert(...,
+                                n_tokens = n_tokens,
+                                increment_index = TRUE,
+                                # I will leave the PAD, CLS, SEP tokens as default.
+                                # This info should *really* be attached to the vocab.
+                                tokenizer = tokenizer,
+                                vocab = vocab
+                                # we don't yet have any other options to pass along.
+                                # When we do, we'll need to think about the best way to
+                                # record that. The most obvious example may be specifying
+                                # the lookup table for mp tokenizer. Perhaps we generalize the
+                                # vocab lookup to include all required params?
+                                # tokenizer_options = NULL
+                  )
+                })
+  # This isn't an inherited attribute, so for now we'll need to manually
+  # copy it to any downstream model objects.
+  model$pretrained_model_info <- stuff
+
+  return(structure(model, "class" = c("pretrained_model", class(model))))
+}
 
 # utils -------------------------------------------------------------------
 
