@@ -4,7 +4,7 @@
 \alias{dataset_bert}
 \title{BERT Dataset}
 \usage{
-dataset_bert(x, y = NULL, tokenizer, n_tokens = 128L)
+dataset_bert(x, y = NULL, tokenizer = tokenize_bert, n_tokens = 128L)
 }
 \arguments{
 \item{x}{A data.frame with one or more character predictor columns.}
@@ -13,7 +13,7 @@ dataset_bert(x, y = NULL, tokenizer, n_tokens = 128L)
 Can be NULL (default).}
 
 \item{tokenizer}{A tokenization function (signature compatible with
-`tokenize_bert`).}
+\code{tokenize_bert}).}
 
 \item{n_tokens}{Integer scalar; the number of tokens expected for each
 example.}

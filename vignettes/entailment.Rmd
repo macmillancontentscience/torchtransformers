@@ -196,7 +196,7 @@ entailment_classifier <- torch::nn_module(
   "entailment_classifier",
   initialize = function(model_name = "bert_tiny_uncased") {
     embedding_size <- config_bert(model_name, "embedding_size")
-    self$bert <- make_and_load_bert(model_name)
+    self$bert <- model_bert_pretrained(model_name)
     # After pooled bert output, do a final dense layer.
     self$linear <- torch::nn_linear(
       in_features = embedding_size,

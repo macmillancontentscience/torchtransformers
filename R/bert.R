@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' BERT Model
+#' Construct a BERT Model
 #'
-#' Construct a BERT model.
+#' BERT models are the family of transformer models popularized by Google's BERT
+#' (Bidirectional Encoder Representations from Transformers). They include any
+#' model with the same general structure.
 #'
 #' @param embedding_size Integer; the dimension of the embedding vectors.
 #' @param intermediate_size Integer; size of dense layers applied after

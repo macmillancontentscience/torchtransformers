@@ -35,18 +35,18 @@ This function sets up the embedding layer for all three of these.
 \section{Shape}{
 
 
-With `sequence_length` <= `max_position_embeddings`:
+With \code{sequence_length} <= \code{max_position_embeddings}:
 
-  Inputs:
+Inputs:
+\itemize{
+\item token_ids: \eqn{(*, sequence_length)}
+\item token_type_ids: \eqn{(*, sequence_length)}
+}
 
-  - token_ids: \eqn{(*, sequence_length)}
-
-  - token_type_ids: \eqn{(*, sequence_length)}
-
-
-  Output:
-
-  - \eqn{(*, sequence_length, embedding_size)}
+Output:
+\itemize{
+\item \eqn{(*, sequence_length, embedding_size)}
+}
 }
 
 \examples{

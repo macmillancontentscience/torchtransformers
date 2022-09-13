@@ -35,21 +35,21 @@ Build a BERT-style multi-layer attention-based transformer.
 \section{Shape}{
 
 
- Inputs:
+Inputs:
 
-With each input token list of length `sequence_length`:
+With each input token list of length \code{sequence_length}:
+\itemize{
+\item input: \eqn{(*, sequence_length, embedding_size)}
+\item optional mask: \eqn{(*, sequence_length)}
+}
 
- - input: \eqn{(*, sequence_length, embedding_size)}
-
- - optional mask: \eqn{(*, sequence_length)}
-
- Output:
-
- - embeddings: list of \eqn{(*, sequence_length, embedding_size)} for each
- transformer layer.
-
- - weights: list of \eqn{(*, n_head, sequence_length, sequence_length)} for
- each transformer layer.
+Output:
+\itemize{
+\item embeddings: list of \eqn{(*, sequence_length, embedding_size)} for each
+transformer layer.
+\item weights: list of \eqn{(*, n_head, sequence_length, sequence_length)} for
+each transformer layer.
+}
 }
 
 \examples{

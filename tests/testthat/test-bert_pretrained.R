@@ -14,12 +14,12 @@
 
 test_that("pre-trained bert works", {
   expect_error(
-    make_and_load_bert("typo_in_model_name"),
+    model_bert_pretrained("typo_in_model_name"),
     "should be one of"
   )
 
 
-  tiny_bert_model <- make_and_load_bert("bert_tiny_uncased")
+  tiny_bert_model <- model_bert_pretrained("bert_tiny_uncased")
 
   n_inputs <- 1
   n_token_max <- 128L
@@ -128,5 +128,28 @@ test_that("config_bert works as expected", {
   expect_identical(
     config_bert("bert_medium_uncased", "max_tokens"),
     512L
+  )
+})
+
+test_that("Pretrained lookup functions error as expected.", {
+  expect_error(
+    .get_token_vocab("fake"),
+    "unrecognized vocabulary: fake"
+  )
+  expect_error(
+    .get_tokenizer("morphemepiece"),
+    "morphemepiece tokenizer not yet supported"
+  )
+  expect_error(
+    .get_tokenizer("sentencepiece"),
+    "sentencepiece tokenizer not yet supported"
+  )
+  expect_error(
+    .get_tokenizer("other"),
+    "unrecognized tokenizer: other"
+  )
+  expect_error(
+    .get_tokenizer_name("fake"),
+    "Unsupported tokenizer_scheme: fake"
   )
 })

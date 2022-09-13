@@ -179,7 +179,7 @@ train_ds <- triplet_text_dataset(paraphrases)
 ## Define the model
 
 We're going to build a "triplet" model with a BERT pre-trained "spine" (specifically "bert_tiny_uncased").
-We use the `make_and_load_bert` function to create a BERT module with pre-trained
+We use the `model_bert_pretrained` function to create a BERT module with pre-trained
 weights loaded.
 We use the final `[CLS]` token as the output, and then a dense layer after that to map into our paraphrase embedding space.
 
@@ -191,7 +191,7 @@ spine_with_pooling <- torch::nn_module(
       model_name = model_name, 
       parameter = "embedding_size"
     ) 
-    self$bert <- make_and_load_bert(model_name)
+    self$bert <- model_bert_pretrained(model_name)
     # After pooled BERT output, do a final dense layer.
     self$linear <- torch::nn_linear(
       in_features = embedding_size, 

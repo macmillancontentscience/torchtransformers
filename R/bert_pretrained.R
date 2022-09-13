@@ -12,8 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # look up tokenizer and vocab ---------------------------------------------
+
+.get_tokenizer_name <- function(tokenizer_scheme) {
+  # Really this always returns "wordpiece" right now in real contexts, because
+  # we won't call this unless the scheme is already validated, and we only have
+  # schemes that use wordpiece.
+  switch(
+    tokenizer_scheme,
+    "bert_en_uncased" = return("wordpiece"),
+    "bert_en_cased" = return("wordpiece"),
+    .validate_tokenizer_scheme(tokenizer_scheme, FALSE)
+  )
+}
+
+.get_vocab_name <- function(tokenizer_scheme) {
+  # Right now our tokenizer_schemes and vocab_names exactly match.
+  return(tokenizer_scheme)
+}
 
 #' Look up Tokenizer Function
 #'
@@ -25,21 +41,13 @@
 #' @return The function implementing the specified algorithm.
 #' @keywords internal
 .get_tokenizer <- function(tokenizer_name) {
-  switch(tokenizer_name,
-         "wordpiece" = return(wordpiece::wordpiece_tokenize),
-         "morphemepiece" = stop("morphemepiece tokenizer not yet supported"),
-         "sentencepiece" = stop("sentencepiece tokenizer not yet supported"),
-         stop("unrecognized tokenizer: ", tokenizer_name)
+  switch(
+    tokenizer_name,
+    "wordpiece" = return(wordpiece::wordpiece_tokenize),
+    "morphemepiece" = stop("morphemepiece tokenizer not yet supported"),
+    "sentencepiece" = stop("sentencepiece tokenizer not yet supported"),
+    stop("unrecognized tokenizer: ", tokenizer_name)
   )
-  # if (tokenizer_name == "wordpiece") {
-  #   return(wordpiece::wordpiece_tokenize)
-  # } else if (tokenizer_name == "morphemepiece") {
-  #   stop("morphemepiece tokenizer not yet supported")
-  # } else if (tokenizer_name == "sentencepiece") {
-  #   stop("sentencepiece tokenizer not yet supported")
-  # } else {
-  #   stop("unrecognized tokenizer: ", tokenizer_name)
-  # }
 }
 
 #' Look up Token Vocabulary
@@ -52,33 +60,26 @@
 #' @return The specified token vocabulary.
 #' @keywords internal
 .get_token_vocab <- function(vocab_name) {
-  switch(vocab_name,
-         "bert_en_uncased" = return(wordpiece.data::wordpiece_vocab(cased = FALSE)),
-         "bert_en_cased" = return(wordpiece.data::wordpiece_vocab(cased = TRUE)),
-         stop("unrecognized vocabulary: ", vocab_name)
+  switch(
+    vocab_name,
+    "bert_en_uncased" = return(wordpiece.data::wordpiece_vocab(cased = FALSE)),
+    "bert_en_cased" = return(wordpiece.data::wordpiece_vocab(cased = TRUE)),
+    stop("unrecognized vocabulary: ", vocab_name)
   )
-  # if (vocab_name == "bert_en_uncased") {
-  #   return(wordpiece.data::wordpiece_vocab(cased = FALSE))
-  # } else if (vocab_name == "bert_en_cased") {
-  #   return(wordpiece.data::wordpiece_vocab(cased = TRUE))
-  # } else {
-  #   stop("unrecognized vocabulary: ", vocab_name)
-  # }
 }
 
-# make_and_load_bert ------------------------------------------------------
+# model_bert_pretrained ------------------------------------------------------
 
-
-#' Pretrained BERT Model
+#' Construct a Pretrained BERT Model
 #'
-#' Construct a BERT model and load pretrained weights.
+#' Construct a BERT model (using [model_bert()]) and load pretrained weights.
 #'
 #' @param model_name Character; which flavor of BERT to use. See
-#'   \code{\link{available_berts}} for known models.
+#'   [available_berts()] for known models.
 #'
 #' @return The model with pretrained weights loaded.
 #' @export
-make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
+model_bert_pretrained <- function(model_name = "bert_tiny_uncased") {
   if (!model_name %in% available_berts()) {
     stop(
       "model_name should be one of: ",
@@ -99,6 +100,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
     max_position_embeddings = params$max_tokens,
     vocab_size = params$vocab_size
   )
+
   .load_weights(model, model_name)
 
   # attach tokenizer, etc. to model.
@@ -135,7 +137,7 @@ make_and_load_bert <- function(model_name = "bert_tiny_uncased") {
 #' Download weights for this model to the torchtransformers cache, or load them
 #' if they're already downloaded.
 #'
-#' @inheritParams make_and_load_bert
+#' @inheritParams model_bert_pretrained
 #' @param redownload Logical; should the weights be downloaded fresh even if
 #'   they're cached? This is not currently exposed to the end user, and exists
 #'   mainly so we can test more easily.
