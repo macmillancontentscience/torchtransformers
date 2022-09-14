@@ -12,336 +12,108 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# look up tokenizer and vocab ---------------------------------------------
-
-.get_tokenizer_name <- function(tokenizer_scheme) {
-  # Really this always returns "wordpiece" right now in real contexts, because
-  # we won't call this unless the scheme is already validated, and we only have
-  # schemes that use wordpiece.
-  switch(
-    tokenizer_scheme,
-    "bert_en_uncased" = return("wordpiece"),
-    "bert_en_cased" = return("wordpiece"),
-    .validate_tokenizer_scheme(tokenizer_scheme, FALSE)
-  )
-}
-
-.get_vocab_name <- function(tokenizer_scheme) {
-  # Right now our tokenizer_schemes and vocab_names exactly match.
-  return(tokenizer_scheme)
-}
-
-#' Look up Tokenizer Function
-#'
-#' Given a string representing the name of a tokenization algorithm, return the
-#' corresponding tokenization function.
-#'
-#' @param tokenizer_name Character; the name of the tokenization algorithm.
-#'
-#' @return The function implementing the specified algorithm.
-#' @keywords internal
-.get_tokenizer <- function(tokenizer_name) {
-  switch(
-    tokenizer_name,
-    "wordpiece" = return(wordpiece::wordpiece_tokenize),
-    "morphemepiece" = stop("morphemepiece tokenizer not yet supported"),
-    "sentencepiece" = stop("sentencepiece tokenizer not yet supported"),
-    stop("unrecognized tokenizer: ", tokenizer_name)
-  )
-}
-
-#' Look up Token Vocabulary
-#'
-#' Given a string representing the name of a token vocabulary, return the
-#' vocabulary.
-#'
-#' @param vocab_name Character; the name of the vocabulary.
-#'
-#' @return The specified token vocabulary.
-#' @keywords internal
-.get_token_vocab <- function(vocab_name) {
-  switch(
-    vocab_name,
-    "bert_en_uncased" = return(wordpiece.data::wordpiece_vocab(cased = FALSE)),
-    "bert_en_cased" = return(wordpiece.data::wordpiece_vocab(cased = TRUE)),
-    stop("unrecognized vocabulary: ", vocab_name)
-  )
-}
-
 # model_bert_pretrained ------------------------------------------------------
 
 #' Construct a Pretrained BERT Model
 #'
 #' Construct a BERT model (using [model_bert()]) and load pretrained weights.
 #'
-#' @param model_name Character; which flavor of BERT to use. See
+#' @param bert_type Character; which flavor of BERT to use. See
 #'   [available_berts()] for known models.
+#' @inheritParams .download_weights
 #'
 #' @return The model with pretrained weights loaded.
 #' @export
-model_bert_pretrained <- function(model_name = "bert_tiny_uncased") {
-  if (!model_name %in% available_berts()) {
-    stop(
-      "model_name should be one of: ",
-      paste0(available_berts(), collapse = ", ")
+model_bert_pretrained <- torch::nn_module(
+  "BERT_pretrained",
+
+  ## private -------------------------------------------------------------------
+  private = list(
+    bert_type = character(0),
+    tokenizer_metadata = list(
+      tokenizer_scheme = character(0),
+      max_tokens = integer(0)
     )
-  }
-  params <- bert_configs[bert_configs$model_name == model_name, ]
+  ),
 
+  ## methods -------------------------------------------------------------------
+  #' @section Methods:
+  #' \describe{
 
-  # look up tokenizer, vocab
-  tokenizer <- .get_tokenizer(params$tokenizer)
-  vocab <- .get_token_vocab(params$vocab)
+  ### initialize ---------------------------------------------------------------
+  #' \item{`initialize`}{Initialize this model. This method is called when the
+  #' model is first created.}
+  initialize = function(bert_type = "bert_tiny_uncased", redownload = FALSE) {
+    if (!bert_type %in% available_berts()) {
+      cli::cli_abort(
+        "Unknown BERT model. `bert_type` must be one of:",
+        i = paste0(available_berts(), collapse = ", ")
+      )
+    }
+    params <- bert_configs[bert_configs$bert_type == bert_type, ]
 
-  model <- model_bert(
-    embedding_size = params$embedding_size,
-    n_layer = params$n_layer,
-    n_head = params$n_head,
-    max_position_embeddings = params$max_tokens,
-    vocab_size = params$vocab_size
-  )
-
-  .load_weights(model, model_name)
-
-  # attach tokenizer, etc. to model.
-  # something like:
-  stuff <- list("config_info" = params,
-                "tokenize" = function(..., n_tokens = 512L) { # let's talk about defaults
-                  tokenize_bert(...,
-                                n_tokens = n_tokens,
-                                increment_index = TRUE,
-                                # I will leave the PAD, CLS, SEP tokens as default.
-                                # This info should *really* be attached to the vocab.
-                                tokenizer = tokenizer,
-                                vocab = vocab
-                                # we don't yet have any other options to pass along.
-                                # When we do, we'll need to think about the best way to
-                                # record that. The most obvious example may be specifying
-                                # the lookup table for mp tokenizer. Perhaps we generalize the
-                                # vocab lookup to include all required params?
-                                # tokenizer_options = NULL
-                  )
-                })
-  # This isn't an inherited attribute, so for now we'll need to manually
-  # copy it to any downstream model objects.
-  model$pretrained_model_info <- stuff
-
-  return(structure(model, "class" = c("pretrained_model", class(model))))
-}
-
-# utils -------------------------------------------------------------------
-
-
-#' Download and Cache Weights
-#'
-#' Download weights for this model to the torchtransformers cache, or load them
-#' if they're already downloaded.
-#'
-#' @inheritParams model_bert_pretrained
-#' @param redownload Logical; should the weights be downloaded fresh even if
-#'   they're cached? This is not currently exposed to the end user, and exists
-#'   mainly so we can test more easily.
-#'
-#' @return The parsed weights as a named list.
-#' @keywords internal
-.download_weights <- function(model_name = "bert_tiny_uncased",
-                              redownload = FALSE) {
-  url <- weights_url_map[model_name]
-
-  return(
-    dlr::read_or_cache(
-      source_path = url,
-      appname = "torchtransformers",
-      process_f = .process_downloaded_weights,
-      read_f = torch::torch_load,
-      write_f = torch::torch_save,
-      force_process = redownload
+    # This feels incorrect, trying it out for now.
+    model_base <- model_bert(
+      embedding_size = params$embedding_size,
+      n_layer = params$n_layer,
+      n_head = params$n_head,
+      max_position_embeddings = params$max_tokens,
+      vocab_size = params$vocab_size
     )
-  )
-}
+    self$embeddings <- model_base$embeddings
+    self$encoder <- model_base$encoder
+    self$.bert_forward <- model_base$forward
 
-#' Process Downloaded Weights
-#'
-#' @param temp_file The path to the raw downloaded weights.
-#'
-#' @return The processed weights.
-#' @keywords internal
-.process_downloaded_weights <- function(temp_file) {
-  state_dict <- torch::load_state_dict(temp_file)
-  # I think we always want to do the concatenation and name fixing, so just do
-  # that here.
-  state_dict <- .concatenate_qkv_weights(state_dict)
-  state_dict <- .rename_state_dict_variables(state_dict)
-  return(state_dict)
-}
-
-#' Concatenate Attention Weights
-#'
-#' Concatenate weights to format attention parameters appropriately for loading
-#' into BERT models. The torch attention module puts the weight/bias values for
-#' the q,k,v tensors into a single tensor, rather than three separate ones. We
-#' do the concatenation so that we can load into our models.
-#'
-#' @param state_dict A state_dict of pretrained weights, probably loaded from a
-#'  file.
-#'
-#' @return The state_dict with query, key, value weights concatenated.
-#' @keywords internal
-.concatenate_qkv_weights <- function(state_dict) {
-  w_names <- names(state_dict)
-  # Find parameters with "query" in the name. *Assume* there will be
-  # corresponding "key" and "value" parameters. *Construct* corresponding
-  # "in_proj" variable.
-  trigger_pattern <- "query\\."
-  query_names <- w_names[stringr::str_detect(
-    string = w_names,
-    pattern = trigger_pattern
-  )]
-
-  for (qn in query_names) {
-    kn <- stringr::str_replace(
-      string = qn,
-      pattern = trigger_pattern,
-      replacement = "key."
+    # Put these properties in private so users can't accidentally break things
+    # by changing them.
+    private$bert_type <- bert_type
+    private$tokenizer_metadata <- list(
+      tokenizer_scheme = params$tokenizer_scheme,
+      max_tokens = params$max_tokens
     )
-    vn <- stringr::str_replace(
-      string = qn,
-      pattern = trigger_pattern,
-      replacement = "value."
+
+    # Now load this model's weights.
+    self$.load_weights(redownload = redownload)
+  },
+
+  ### forward ------------------------------------------------------------------
+  #' \item{`forward`}{Use this model. This method is called during training, and
+  #' also during prediction. `x` is a list of [torch::torch_tensor()] values for
+  #' `token_ids` and `token_type_ids`.}
+  forward = function(x) {
+    # Pass the data through to BERT.
+    self$.bert_forward(x$token_ids, x$token_type_ids)
+  },
+
+  # TODO: Build in a loss function.
+
+  ### .get_tokenizer_metadata --------------------------------------------------
+  #' \item{`.get_tokenizer_metadata`}{Look up the tokenizer metadata for this
+  #' model. This method is called automatically when
+  #' [luz_callback_bert_tokenize()] validates that a dataset is tokenized
+  #' properly for this model.}
+  .get_tokenizer_metadata = function() {
+    return(private$tokenizer_metadata)
+  },
+
+  ### .load_weights ------------------------------------------------------------
+  #' \item{`.load_weights`}{Load the pretrained weights for this model. This
+  #' method is called automatically during initialization of this model.}
+  .load_weights = function(redownload) {
+    # This will usually just fetch from the cache
+    saved_state_dict <- .download_weights(
+      bert_type = private$bert_type, redownload = redownload
     )
-    ipn <- stringr::str_replace(
-      string = qn,
-      pattern = trigger_pattern,
-      replacement = "in_proj_"
-    )
-    combined <- torch::torch_cat(list(
-      state_dict[[qn]],
-      state_dict[[kn]],
-      state_dict[[vn]]
-    ))
-    state_dict[[ipn]] <- combined
-    state_dict[[qn]] <- NULL
-    state_dict[[kn]] <- NULL
-    state_dict[[vn]] <- NULL
-  }
-  return(state_dict)
-}
-
-#' Clean up Parameter Names
-#'
-#' There are some hard-to-avoid differences between the variable names in BERT
-#' models constructed using this package and the standard variable names used in
-#' the Huggingface saved weights. This function changes the names from the
-#' Huggingface saves to match package usage.
-#'
-#' @param state_dict A state_dict of pretrained weights, probably loaded from a
-#'  file.
-#'
-#' @return The state_dict with the names normalized.
-#' @keywords internal
-.rename_state_dict_variables <- function(state_dict) {
-  rep_rules <- variable_names_replacement_rules
-  w_names <- names(state_dict)
-  w_names <- stringr::str_replace_all(
-    string = w_names,
-    pattern = stringr::fixed(rep_rules)
-  )
-  names(state_dict) <- w_names
-  return(state_dict)
-}
-
-
-#' Load Pretrained Weights into a BERT Model
-#'
-#' Loads specified pretrained weights into the given BERT model.
-#'
-#' @param model A BERT-type model, constructed using `model_bert`.
-#' @param model_name Character; which flavor of BERT to use. Must be compatible
-#'   with `model`!
-#' @param redownload
-#'
-#' @return The number of model parameters updated. (This is to enable error
-#'   checks; the function is called for side effects.)
-#' @keywords internal
-.load_weights <- function(model,
-                          model_name = "bert_tiny_uncased",
-                          redownload = FALSE) {
-  # This will usually just fetch from the cache
-  sd <- .download_weights(model_name = model_name, redownload = redownload)
-
-  my_sd <- model$state_dict()
-  my_weight_names <- names(my_sd)
-  saved_weight_names <- names(sd)
-  names_in_common <- intersect(my_weight_names, saved_weight_names)
-  if (length(names_in_common) > 0) {
-    my_sd[names_in_common] <- sd[names_in_common]
-  } else {
-    warning("No matching weight names found.") # nocov
-  }
-  model$load_state_dict(my_sd)
-  return(length(names_in_common)) # This function is for side effects.
-}
-
-#' BERT Model Parameters
-#'
-#' Several parameters define a BERT model. This function can be used to easily
-#' load them.
-#'
-#' @param model_name Character scalar; the name of a known BERT model.
-#' @param parameter Character scalar; the desired parameter.
-#'
-#' @return Integer scalar; the value of that parameter for that model.
-#' @export
-#'
-#' @examples
-#' config_bert("bert_medium_uncased", "n_head")
-config_bert <- function(model_name,
-                        parameter = c(
-                          "embedding_size",
-                          "n_layer",
-                          "n_head",
-                          "max_tokens",
-                          "vocab_size"
-                        )) {
-  if (length(model_name) > 1) {
-    rlang::abort(
-      message = "Please provide a single model name.",
-      class = "bad_model_name"
-    )
+    my_weight_names <- names(self$state_dict())
+    saved_weight_names <- names(saved_state_dict)
+    names_in_common <- intersect(my_weight_names, saved_weight_names)
+    if (length(names_in_common) > 0) {
+      self$load_state_dict(saved_state_dict[names_in_common])
+    } else {
+      stop("No matching weight names found.") # nocov
+    }
   }
 
-  if (!(model_name %in% available_berts())) {
-    rlang::abort(
-      message = paste(
-        "model_name must be one of",
-        paste(available_berts(), collapse = ", ")
-      ),
-      class = "bad_model_name"
-    )
-  }
+  #' }
 
-  parameter <- match.arg(parameter)
-  bert_configs[bert_configs$model_name == model_name,][[parameter]]
-}
-
-#' Available BERT Models
-#'
-#' List the BERT models that are defined for this package.
-#'
-#' Note that some of the models listed here are actually repeats, listed under
-#' different names. For example, "bert_L2H128_uncased" and "bert_tiny_uncased"
-#' point to the same underlying weights. In general, models with the same values
-#' of hyperparameters (accessed by `config_bert`) are identical. However, there
-#' is one exception to this: the "bert_base_uncased" and "bert_L12H768_uncased"
-#' models have the same hyperparameters and training regime, but are actually
-#' distinct models with different actual weights. Any differences between the
-#' models are presumably attributable to different random seeds.
-#'
-#' @return A character vector of model names.
-#' @export
-#'
-#' @examples
-#' available_berts()
-available_berts <- function() {
-  return(bert_configs$model_name)
-}
+)

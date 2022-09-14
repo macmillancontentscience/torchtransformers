@@ -186,12 +186,12 @@ We use the final `[CLS]` token as the output, and then a dense layer after that 
 ```{r spine-definition}
 spine_with_pooling <- torch::nn_module(
   classname = "pooled_spine",
-  initialize = function(model_name = "bert_tiny_uncased") {
+  initialize = function(bert_type = "bert_tiny_uncased") {
     embedding_size <- config_bert(
-      model_name = model_name, 
+      bert_type = bert_type, 
       parameter = "embedding_size"
     ) 
-    self$bert <- model_bert_pretrained(model_name)
+    self$bert <- model_bert_pretrained(bert_type)
     # After pooled BERT output, do a final dense layer.
     self$linear <- torch::nn_linear(
       in_features = embedding_size, 
@@ -224,9 +224,9 @@ We use `torch::nn_triplet_margin_loss` to measure the loss using the three outpu
 ```{r model-definition}
 triplet_text_model <- torch::nn_module(
   classname = "triplet_text",
-  initialize = function(model_name = "bert_tiny_uncased") {
+  initialize = function(bert_type = "bert_tiny_uncased") {
     # Share the same spine parameters between all three inputs.
-    self$spine <- spine_with_pooling(model_name)
+    self$spine <- spine_with_pooling(bert_type)
     self$criterion <- nn_triplet_margin_loss()
   },
   loss = function(input, ...) {
@@ -280,8 +280,8 @@ This model uses the same parameters as the triplet model, but with a single call
 # loading.
 vectorizer <- torch::nn_module(
   "vectorizer",
-  initialize = function(model_name = "bert_tiny_uncased") {
-    self$spine <- spine_with_pooling(model_name)
+  initialize = function(bert_type = "bert_tiny_uncased") {
+    self$spine <- spine_with_pooling(bert_type)
   },
   forward = function(input) {
     return(self$spine(input))

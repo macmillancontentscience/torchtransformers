@@ -1,12 +1,26 @@
-original_data <- data.frame(
-  x1 = c("Some text", "More text"),
-  x2 = c("Still more", "Also another"),
-  result = factor(c("a", "b"))
-)
-predictors <- dplyr::select(original_data, x1, x2)
-outcome <- dplyr::select(original_data, result)
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 test_that("dataset_bert_pretrained fails with bad input.", {
+  original_data <- data.frame(
+    x1 = c("Some text", "More text"),
+    x2 = c("Still more", "Also another"),
+    result = factor(c("a", "b"))
+  )
+  predictors <- dplyr::select(original_data, x1, x2)
+  outcome <- dplyr::select(original_data, result)
+
   # Bad input data.
   expect_error(
     dataset_bert_pretrained(
@@ -22,6 +36,14 @@ test_that("dataset_bert_pretrained fails with bad input.", {
 })
 
 test_that("dataset_bert_pretrained can tokenize after initialization.", {
+  original_data <- data.frame(
+    x1 = c("Some text", "More text"),
+    x2 = c("Still more", "Also another"),
+    result = factor(c("a", "b"))
+  )
+  predictors <- dplyr::select(original_data, x1, x2)
+  outcome <- dplyr::select(original_data, result)
+
   data_separate <- dataset_bert_pretrained(predictors, outcome)
   expect_length(data_separate, 2)
   expect_error(
@@ -80,10 +102,18 @@ test_that("dataset_bert_pretrained can tokenize after initialization.", {
 })
 
 test_that("dataset_bert_pretrained can partially set tokenization info.", {
+  original_data <- data.frame(
+    x1 = c("Some text", "More text"),
+    x2 = c("Still more", "Also another"),
+    result = factor(c("a", "b"))
+  )
+  predictors <- dplyr::select(original_data, x1, x2)
+  outcome <- dplyr::select(original_data, result)
+
   data_with_scheme <- dataset_bert_pretrained(
     predictors,
     outcome,
-    "bert_en_uncased"
+    tokenizer_scheme = "bert_en_uncased"
   )
   expect_length(data_with_scheme, 2)
   expect_error(
@@ -119,11 +149,19 @@ test_that("dataset_bert_pretrained can partially set tokenization info.", {
 })
 
 test_that("dataset_bert_pretrained can do it all in one go.", {
+  original_data <- data.frame(
+    x1 = c("Some text", "More text"),
+    x2 = c("Still more", "Also another"),
+    result = factor(c("a", "b"))
+  )
+  predictors <- dplyr::select(original_data, x1, x2)
+  outcome <- dplyr::select(original_data, result)
+
   data_tokenized <- dataset_bert_pretrained(
     predictors,
     outcome,
-    "bert_en_uncased",
-    10L
+    tokenizer_scheme = "bert_en_uncased",
+    n_tokens = 10L
   )
 
   expect_length(data_tokenized, 2)
@@ -145,54 +183,4 @@ test_that("dataset_bert_pretrained can do it all in one go.", {
   # Do snapshots at the end to avoid confusing coverage.
   expect_snapshot(data_tokenized)
   expect_snapshot(data_tokenized$.getitem(1))
-})
-
-test_that("dataset_bert implementation works", {
-  # Include these as separate tests mostly to make sure coverage checks see that
-  # we test them. It's also theoretically useful to separate these out to avoid
-  # debugging issues with torch.
-  expect_error(
-    .standardize_bert_dataset_outcome(as.character(outcome$result)),
-    class = "bad_outcome"
-  )
-
-  test_result_df <- .standardize_bert_dataset_outcome(outcome)
-  expect_identical(test_result_df, outcome$result)
-
-  test_result_factor <- .standardize_bert_dataset_outcome(outcome$result)
-  expect_identical(test_result_factor, outcome$result)
-
-  test_result_null <- .standardize_bert_dataset_outcome(NULL)
-  expect_null(test_result_null)
-})
-
-test_that("dataset_bert works", {
-  expect_error(
-    dataset_bert(predictors, as.character(outcome$result)),
-    class = "bad_outcome"
-  )
-
-  test_result_df <- dataset_bert(predictors, outcome)
-  expect_snapshot(test_result_df)
-  expect_snapshot(test_result_df$token_types)
-  expect_snapshot(test_result_df$tokenized_text)
-  expect_snapshot(test_result_df$y)
-
-  test_result_factor <- dataset_bert(predictors, outcome$result)
-  expect_snapshot(test_result_factor)
-  expect_snapshot(test_result_factor$token_types)
-  expect_snapshot(test_result_factor$tokenized_text)
-  expect_snapshot(test_result_factor$y)
-
-  test_result_null <- dataset_bert(predictors, NULL)
-  expect_snapshot(test_result_null)
-  expect_snapshot(test_result_null$token_types)
-  expect_snapshot(test_result_null$tokenized_text)
-  expect_snapshot(test_result_null$y)
-
-  test_result_tokens <- dataset_bert(predictors, outcome, n_tokens = 32)
-  expect_snapshot(test_result_tokens)
-  expect_snapshot(test_result_tokens$token_types)
-  expect_snapshot(test_result_tokens$tokenized_text)
-  expect_snapshot(test_result_tokens$y)
 })

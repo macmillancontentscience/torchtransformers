@@ -158,18 +158,18 @@ options(old_timeout)
 ```
 
 We need to set these datasets up for use with {luz}. 
-We can use `dataset_bert()` to process the train, matched, and mismatched datasets.
+We can use `dataset_bert_pretrained()` to process the train, matched, and mismatched datasets.
 
 ```{r datasets}
-train_ds <- dataset_bert(
+train_ds <- dataset_bert_pretrained(
   x = dplyr::select(
-    mnli_tibbles$train, 
+    mnli_tibbles$train,
     sentence1,
     sentence2
   ),
   y = mnli_tibbles$train$gold_label
 )
-test_matched_ds <- dataset_bert(
+test_matched_ds <- dataset_bert_pretrained(
   x = dplyr::select(
     mnli_tibbles$dev_matched, 
     sentence1,
@@ -177,7 +177,7 @@ test_matched_ds <- dataset_bert(
   ),
   y = mnli_tibbles$dev_matched$gold_label
 )
-test_mismatched_ds <- dataset_bert(
+test_mismatched_ds <- dataset_bert_pretrained(
   x = dplyr::select(
     mnli_tibbles$dev_mismatched, 
     sentence1,
@@ -187,6 +187,9 @@ test_mismatched_ds <- dataset_bert(
 )
 ```
 
+Note that we do *not* tokenize the data at this point. 
+We'll let the model trigger tokenization to make sure the data is in the format the model expects.
+
 ## Model
 
 We'll construct a model based on BERT, with a linear layer to score the input on the three label dimensions.
@@ -194,9 +197,9 @@ We'll construct a model based on BERT, with a linear layer to score the input on
 ```{r model}
 entailment_classifier <- torch::nn_module(
   "entailment_classifier",
-  initialize = function(model_name = "bert_tiny_uncased") {
-    embedding_size <- config_bert(model_name, "embedding_size")
-    self$bert <- model_bert_pretrained(model_name)
+  initialize = function(bert_type = "bert_tiny_uncased") {
+    embedding_size <- config_bert(bert_type, "embedding_size")
+    self$bert <- model_bert_pretrained(bert_type)
     # After pooled bert output, do a final dense layer.
     self$linear <- torch::nn_linear(
       in_features = embedding_size,
@@ -204,7 +207,7 @@ entailment_classifier <- torch::nn_module(
     )
   },
   forward = function(x) {
-    output <- self$bert(x$token_ids, x$token_type_ids)
+    output <- self$bert(x)
 
     # Take the output embeddings from the last layer.
     output <- output$output_embeddings
@@ -234,7 +237,13 @@ fitted <- entailment_classifier %>%
   fit(
     train_ds, 
     epochs = 1, 
-    valid_data = 0.1, 
+    callbacks = list(
+      luz_callback_bert_tokenize(
+        submodel_name = "bert", 
+        n_tokens = 128L # We don't want the full 512 for this example.
+      )
+    ),
+    valid_data = 0.1,
     dataloader_options = list(batch_size = 128L)
   )
 ```
@@ -245,7 +254,15 @@ We predict the two test datasets, and measure the results.
 
 ```{r predict}
 predictions_matched <- fitted %>% 
-  predict(test_matched_ds) %>% 
+  predict(
+    test_matched_ds, 
+    callbacks = list(
+      luz_callback_bert_tokenize(
+        submodel_name = "bert", 
+        n_tokens = 128L
+      )
+    )
+  ) %>% 
   torch::nnf_softmax(2) %>% 
   torch::torch_argmax(2)
 predictions_matched <- predictions_matched$to(device = "cpu") %>% 
@@ -262,10 +279,18 @@ yardstick::accuracy(dev_matched, gold_label, .pred)
 #> # A tibble: 1 × 3
 #>   .metric  .estimator .estimate
 #>   <chr>    <chr>          <dbl>
-#> 1 accuracy multiclass     0.651
+#> 1 accuracy multiclass     0.650
 
 predictions_mismatched <- fitted %>% 
-  predict(test_mismatched_ds) %>% 
+  predict(
+    test_mismatched_ds, 
+    callbacks = list(
+      luz_callback_bert_tokenize(
+        submodel_name = "bert", 
+        n_tokens = 128L
+      )
+    )
+  ) %>% 
   torch::nnf_softmax(2) %>% 
   torch::torch_argmax(2)
 predictions_mismatched <- predictions_mismatched$to(device = "cpu") %>% 
@@ -282,7 +307,7 @@ yardstick::accuracy(dev_mismatched, gold_label, .pred)
 #> # A tibble: 1 × 3
 #>   .metric  .estimator .estimate
 #>   <chr>    <chr>          <dbl>
-#> 1 accuracy multiclass     0.663
+#> 1 accuracy multiclass     0.661
 ```
 
-The published results for bert_tiny_uncased on these datasets are 0.72 and 0.73, so our results of 0.65 and 0.66 after a single epoch are on track.
+The published results for bert_tiny_uncased on these datasets are 0.72 and 0.73, so our results of 0.65 and 0.66 after a single epoch of fine-tuning are on track.
