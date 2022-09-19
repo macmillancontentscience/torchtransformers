@@ -116,7 +116,7 @@ available_berts <- function() {
 }
 
 
-# Look up tokenizer and vocab -----------------------------------------------------
+# Look up tokenizer and vocab --------------------------------------------------
 
 #' Look Up Tokenizer Name
 #'

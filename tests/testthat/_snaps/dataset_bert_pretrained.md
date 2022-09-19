@@ -13,13 +13,12 @@
           clone: function (deep = FALSE) 
           initialize: function (x, y = NULL, bert_type = NULL, tokenizer_scheme = NULL, 
           tokenize: function (tokenizer_scheme, n_tokens) 
+          torch_data: list
           untokenize: function () 
         Private:
           input_data: list
-          processed_data: list
           tokenized: TRUE
           tokenizer_metadata: list
-          torch_data: list
 
 ---
 
@@ -77,13 +76,12 @@
           clone: function (deep = FALSE) 
           initialize: function (x, y = NULL, bert_type = NULL, tokenizer_scheme = NULL, 
           tokenize: function (tokenizer_scheme, n_tokens) 
+          torch_data: list
           untokenize: function () 
         Private:
           input_data: list
-          processed_data: list
           tokenized: TRUE
           tokenizer_metadata: list
-          torch_data: list
 
 ---
 
@@ -141,13 +139,12 @@
           clone: function (deep = FALSE) 
           initialize: function (x, y = NULL, bert_type = NULL, tokenizer_scheme = NULL, 
           tokenize: function (tokenizer_scheme, n_tokens) 
+          torch_data: list
           untokenize: function () 
         Private:
           input_data: list
-          processed_data: list
           tokenized: TRUE
           tokenizer_metadata: list
-          torch_data: list
 
 ---
 

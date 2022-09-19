@@ -19,6 +19,10 @@ list, matrix, or character vector that can be coerced to such a data.frame.}
 \item{y}{A factor of outcomes, or a data.frame with a single factor column.
 Can be NULL (default).}
 
+\item{bert_type}{A bert_type from \code{\link[=available_berts]{available_berts()}} to use to choose the
+other properties. If \code{bert_type} and \code{n_tokens} are set, they overrule this
+setting.}
+
 \item{tokenizer_scheme}{A character scalar that indicates vocabulary +
 tokenizer.}
 
@@ -38,13 +42,6 @@ Prepare a dataset for pretrained BERT models.
 \item{\code{input_data}}{\code{(private)} The input predictors (\code{x}) standardized to
 a data.frame of character columns, and outcome (\code{y}) standardized to a
 factor or \code{NULL}.}
-
-\item{\code{processed_data}}{\code{(private)} The predictors (\code{x}) tokenized to a
-list of integers (indicating the \code{token_ids} and \code{token_type_ids}), and
-the outcomes (\code{y}) cast to an integer vector or \code{NULL}.}
-
-\item{\code{torch_data}}{\code{(private)} The processed predictors (\code{x}) and outcome
-(\code{y}) cast to \code{\link[torch:torch_tensor]{torch::torch_tensor()}}.}
 
 \item{\code{tokenizer_metadata}}{\code{(private)} A list indicating the
 \code{tokenizer_scheme} and \code{n_tokens} that have been or will be used to

@@ -22,8 +22,7 @@
 #'   list, matrix, or character vector that can be coerced to such a data.frame.
 #' @param y A factor of outcomes, or a data.frame with a single factor column.
 #'   Can be NULL (default).
-#' @inheritParams .validate_tokenizer_scheme
-#' @inheritParams .validate_n_tokens
+#' @inheritParams .validate_tokenizer_metadata
 #'
 #' @return An initialized [torch::dataset()]. If it is not yet tokenized, the
 #'   `tokenize()` method must be called before the dataset will be usable.
@@ -38,25 +37,7 @@ dataset_bert_pretrained <- torch::dataset(
     #'   a data.frame of character columns, and outcome (`y`) standardized to a
     #'   factor or `NULL`.
     input_data = list(),
-    #' @field processed_data `(private)` The predictors (`x`) tokenized to a
-    #'   list of integers (indicating the `token_ids` and `token_type_ids`), and
-    #'   the outcomes (`y`) cast to an integer vector or `NULL`.
-    processed_data = list(
-      x = list(
-        token_ids = integer(0),
-        token_type_ids = integer(0)
-      ),
-      y = integer(0)
-    ),
-    #' @field torch_data `(private)` The processed predictors (`x`) and outcome
-    #'   (`y`) cast to [torch::torch_tensor()].
-    torch_data = list(
-      x = list(
-        token_ids = torch::torch_tensor(integer(0)),
-        token_type_ids = torch::torch_tensor(integer(0))
-      ),
-      y = torch::torch_tensor(integer(0))
-    ),
+
     #' @field tokenizer_metadata `(private)` A list indicating the
     #'   `tokenizer_scheme` and `n_tokens` that have been or will be used to
     #'   tokenize the predictors (`x`).
@@ -92,8 +73,18 @@ dataset_bert_pretrained <- torch::dataset(
       x = x,
       y = y
     )
-    private$processed_data$y <- as.integer(private$input_data$y)
-    private$torch_data$y <- torch::torch_tensor(private$processed_data$y)
+
+    # I think putting this in private caused issues. I still want to initialize
+    # it so it's the same shape no matter where we go after this.
+    self$torch_data <- list(
+      x = list(
+        token_ids = torch::torch_tensor(integer(0)),
+        token_type_ids = torch::torch_tensor(integer(0))
+      ),
+      y = torch::torch_tensor(integer(0))
+    )
+
+    self$torch_data$y <- torch::torch_tensor(private$input_data$y)
 
     # Log the tokenizer info if known.
     private$tokenizer_metadata <- .validate_tokenizer_metadata(
@@ -198,17 +189,13 @@ dataset_bert_pretrained <- torch::dataset(
 
     # TODO: For the moment we assume that succeeded since tokenize_bert didn't
     # complain.
-    private$processed_data$x <- tokenized
-
-    private$torch_data$x <- list(
+    self$torch_data$x <- list(
       token_ids = torch::torch_tensor(tokenized$token_ids),
       token_type_ids = torch::torch_tensor(tokenized$token_type_ids)
     )
 
     private$tokenized <- TRUE
 
-    # I test that I'm getting TRUE out but for some reason gp doesn't acknowledge
-    # that test.
     return(invisible(TRUE))
   },
 
@@ -220,11 +207,7 @@ dataset_bert_pretrained <- torch::dataset(
       tokenizer_scheme = NULL,
       n_tokens = NULL
     )
-    private$processed_data$x <- list(
-      token_ids = integer(0),
-      token_type_ids = integer(0)
-    )
-    private$torch_data$x <- list(
+    self$torch_data$x <- list(
       token_ids = torch::torch_tensor(integer(0)),
       token_type_ids = torch::torch_tensor(integer(0))
     )
@@ -274,8 +257,8 @@ dataset_bert_pretrained <- torch::dataset(
   #' associated outcome). Generally superseded by instead calling `.getbatch()`
   #' (or by letting the {luz} modeling process fit automatically).}
   .getitem = function(index) {
-    if (length(private$torch_data$y)) {
-      target <- private$torch_data$y[index]
+    if (length(self$torch_data$y)) {
+      target <- self$torch_data$y[index]
     } else {
       target <- list()
     }
@@ -288,8 +271,8 @@ dataset_bert_pretrained <- torch::dataset(
     return(
       list(
         list(
-          token_ids = private$torch_data$x$token_ids[index, ],
-          token_type_ids = private$torch_data$x$token_type_ids[index, ]
+          token_ids = self$torch_data$x$token_ids[index, ],
+          token_type_ids = self$torch_data$x$token_type_ids[index, ]
         ),
         target
       )
@@ -301,8 +284,8 @@ dataset_bert_pretrained <- torch::dataset(
   #' associated outcomes). This function is called automatically by `{luz}`
   #' during the fitting process.}
   .getbatch = function(index) {
-    if (length(private$torch_data$y)) {
-      target <- private$torch_data$y[index, drop = FALSE]
+    if (length(self$torch_data$y)) {
+      target <- self$torch_data$y[index, drop = FALSE]
     } else {
       target <- list()
     }
@@ -315,8 +298,8 @@ dataset_bert_pretrained <- torch::dataset(
     return(
       list(
         list(
-          token_ids = private$torch_data$x$token_ids[drop = FALSE, index, ],
-          token_type_ids = private$torch_data$x$token_type_ids[
+          token_ids = self$torch_data$x$token_ids[drop = FALSE, index, ],
+          token_type_ids = self$torch_data$x$token_type_ids[
             drop = FALSE, index,
           ]
         ),

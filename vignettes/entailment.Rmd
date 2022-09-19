@@ -244,7 +244,7 @@ fitted <- entailment_classifier %>%
       )
     ),
     valid_data = 0.1,
-    dataloader_options = list(batch_size = 128L)
+    dataloader_options = list(batch_size = 256L)
   )
 ```
 
@@ -279,7 +279,7 @@ yardstick::accuracy(dev_matched, gold_label, .pred)
 #> # A tibble: 1 × 3
 #>   .metric  .estimator .estimate
 #>   <chr>    <chr>          <dbl>
-#> 1 accuracy multiclass     0.650
+#> 1 accuracy multiclass     0.659
 
 predictions_mismatched <- fitted %>% 
   predict(
@@ -310,4 +310,4 @@ yardstick::accuracy(dev_mismatched, gold_label, .pred)
 #> 1 accuracy multiclass     0.661
 ```
 
-The published results for bert_tiny_uncased on these datasets are 0.72 and 0.73, so our results of 0.65 and 0.66 after a single epoch of fine-tuning are on track.
+The published results for bert_tiny_uncased on these datasets are 0.72 and 0.73, so our results of 0.66 and 0.66 after a single epoch of fine-tuning are on track.
