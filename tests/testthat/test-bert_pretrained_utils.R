@@ -98,9 +98,9 @@ test_that("Pretrained lookup functions error as expected.", {
 
 test_that("Weights process as expected.", {
   # I constructed the dataset for this by downloading the raw bert-tiny-uncased
-  # weights and choping most things out to get a minimal file to start from. For
-  # simplicity we still start *after* the python weights are already loaded, so
-  # we skip the actual processing function.
+  # weights and chopping most things out to get a minimal file to start from.
+  # For simplicity we still start *after* the python weights are already loaded,
+  # so we skip the actual processing function.
   state_dict <- torch::torch_load(
     testthat::test_path("minimal_sd.rds")
   )

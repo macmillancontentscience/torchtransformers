@@ -13,7 +13,8 @@ luz_callback_bert_tokenize(
 \arguments{
 \item{submodel_name}{An optional character scalar identifying a model inside
 the main \code{\link[torch:nn_module]{torch::nn_module()}} that was built using
-\code{\link[=model_bert_pretrained]{model_bert_pretrained()}}.}
+\code{\link[=model_bert_pretrained]{model_bert_pretrained()}}. See \code{vignette("entailment")} for an example of a
+model with a submodel.}
 
 \item{n_tokens}{An optional integer scalar indicating the number of tokens to
 which the data should be tokenized. If present it must be equal to or less
@@ -25,7 +26,10 @@ its progress (default \code{TRUE}).}
 \description{
 Data used in pretrained BERT models must be tokenized in the way the model
 expects. This \code{luz_callback} checks that the incoming data is tokenized
-properly, and triggers tokenization if necessary.
+properly, and triggers tokenization if necessary. This function should be
+passed to \code{\link[luz:fit.luz_module_generator]{luz::fit.luz_module_generator()}} or
+\code{\link[luz:predict.luz_module_fitted]{luz::predict.luz_module_fitted()}} via the \code{callbacks} argument, not called
+directly.
 }
 \examples{
 if (rlang::is_installed("luz")) {
