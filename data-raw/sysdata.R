@@ -99,38 +99,38 @@ variable_names_replacement_rules <- c(
 # May as well store the configuration info for known BERT models here...
 # "intermediate size" is always 4x the embedding size for these models.
 bert_configs <- tibble::tribble(
-  ~model_name, ~embedding_size, ~n_layer, ~n_head, ~max_tokens, ~vocab_size,
-  "bert_L2H128_uncased", 128L, 2L, 2L, 512L, 30522L, # see note above
-  "bert_L4H128_uncased", 128L, 4L, 2L, 512L, 30522L,
-  "bert_L6H128_uncased", 128L, 6L, 2L, 512L, 30522L,
-  "bert_L8H128_uncased", 128L, 8L, 2L, 512L, 30522L,
-  "bert_L10H128_uncased", 128L, 10L, 2L, 512L, 30522L,
-  "bert_L12H128_uncased", 128L, 12L, 2L, 512L, 30522L,
-  "bert_L2H256_uncased", 256L, 2L, 4L, 512L, 30522L,
-  "bert_L4H256_uncased", 256L, 4L, 4L, 512L, 30522L, #
-  "bert_L6H256_uncased", 256L, 6L, 4L, 512L, 30522L,
-  "bert_L8H256_uncased", 256L, 8L, 4L, 512L, 30522L,
-  "bert_L10H256_uncased", 256L, 10L, 4L, 512L, 30522L,
-  "bert_L12H256_uncased", 256L, 12L, 4L, 512L, 30522L,
-  "bert_L2H512_uncased", 512L, 2L, 8L, 512L, 30522L,
-  "bert_L4H512_uncased", 512L, 4L, 8L, 512L, 30522L, #
-  "bert_L6H512_uncased", 512L, 6L, 8L, 512L, 30522L,
-  "bert_L8H512_uncased", 512L, 8L, 8L, 512L, 30522L, #
-  "bert_L10H512_uncased", 512L, 10L, 8L, 512L, 30522L,
-  "bert_L12H512_uncased", 512L, 12L, 8L, 512L, 30522L,
-  "bert_L2H768_uncased", 768L, 2L, 12L, 512L, 30522L,
-  "bert_L4H768_uncased", 768L, 4L, 12L, 512L, 30522L,
-  "bert_L6H768_uncased", 768L, 6L, 12L, 512L, 30522L,
-  "bert_L8H768_uncased", 768L, 8L, 12L, 512L, 30522L,
-  "bert_L10H768_uncased", 768L, 10L, 12L, 512L, 30522L,
-  "bert_L12H768_uncased", 768L, 12L, 12L, 512L, 30522L,
-  "bert_tiny_uncased", 128L, 2L, 2L, 512L, 30522L,
-  "bert_mini_uncased", 256L, 4L, 4L, 512L, 30522L,
-  "bert_small_uncased", 512L, 4L, 8L, 512L, 30522L,
-  "bert_medium_uncased", 512L, 8L, 8L, 512L, 30522L,
-  "bert_base_uncased", 768L, 12L, 12L, 512L, 30522L,
-  "bert_base_cased", 768L, 12L, 12L, 512L, 28996L,
-  "bert_large_uncased", 1024L, 24L, 16L, 512L, 30522L
+  ~bert_type, ~embedding_size, ~n_layer, ~n_head, ~max_tokens, ~vocab_size, ~tokenizer_scheme,
+  "bert_L2H128_uncased", 128L, 2L, 2L, 512L, 30522L, "bert_en_uncased", # see note above
+  "bert_L4H128_uncased", 128L, 4L, 2L, 512L, 30522L, "bert_en_uncased",
+  "bert_L6H128_uncased", 128L, 6L, 2L, 512L, 30522L, "bert_en_uncased",
+  "bert_L8H128_uncased", 128L, 8L, 2L, 512L, 30522L, "bert_en_uncased",
+  "bert_L10H128_uncased", 128L, 10L, 2L, 512L, 30522L, "bert_en_uncased",
+  "bert_L12H128_uncased", 128L, 12L, 2L, 512L, 30522L, "bert_en_uncased",
+  "bert_L2H256_uncased", 256L, 2L, 4L, 512L, 30522L, "bert_en_uncased",
+  "bert_L4H256_uncased", 256L, 4L, 4L, 512L, 30522L, "bert_en_uncased", #
+  "bert_L6H256_uncased", 256L, 6L, 4L, 512L, 30522L, "bert_en_uncased",
+  "bert_L8H256_uncased", 256L, 8L, 4L, 512L, 30522L, "bert_en_uncased",
+  "bert_L10H256_uncased", 256L, 10L, 4L, 512L, 30522L, "bert_en_uncased",
+  "bert_L12H256_uncased", 256L, 12L, 4L, 512L, 30522L, "bert_en_uncased",
+  "bert_L2H512_uncased", 512L, 2L, 8L, 512L, 30522L, "bert_en_uncased",
+  "bert_L4H512_uncased", 512L, 4L, 8L, 512L, 30522L, "bert_en_uncased", #
+  "bert_L6H512_uncased", 512L, 6L, 8L, 512L, 30522L, "bert_en_uncased",
+  "bert_L8H512_uncased", 512L, 8L, 8L, 512L, 30522L, "bert_en_uncased", #
+  "bert_L10H512_uncased", 512L, 10L, 8L, 512L, 30522L, "bert_en_uncased",
+  "bert_L12H512_uncased", 512L, 12L, 8L, 512L, 30522L, "bert_en_uncased",
+  "bert_L2H768_uncased", 768L, 2L, 12L, 512L, 30522L, "bert_en_uncased",
+  "bert_L4H768_uncased", 768L, 4L, 12L, 512L, 30522L, "bert_en_uncased",
+  "bert_L6H768_uncased", 768L, 6L, 12L, 512L, 30522L, "bert_en_uncased",
+  "bert_L8H768_uncased", 768L, 8L, 12L, 512L, 30522L, "bert_en_uncased",
+  "bert_L10H768_uncased", 768L, 10L, 12L, 512L, 30522L, "bert_en_uncased",
+  "bert_L12H768_uncased", 768L, 12L, 12L, 512L, 30522L, "bert_en_uncased",
+  "bert_tiny_uncased", 128L, 2L, 2L, 512L, 30522L, "bert_en_uncased",
+  "bert_mini_uncased", 256L, 4L, 4L, 512L, 30522L, "bert_en_uncased",
+  "bert_small_uncased", 512L, 4L, 8L, 512L, 30522L, "bert_en_uncased",
+  "bert_medium_uncased", 512L, 8L, 8L, 512L, 30522L, "bert_en_uncased",
+  "bert_base_uncased", 768L, 12L, 12L, 512L, 30522L, "bert_en_uncased",
+  "bert_base_cased", 768L, 12L, 12L, 512L, 28996L, "bert_en_cased",
+  "bert_large_uncased", 1024L, 24L, 16L, 512L, 30522L, "bert_en_uncased"
 )
 
 

@@ -14,12 +14,12 @@
 
 test_that("pre-trained bert works", {
   expect_error(
-    make_and_load_bert("typo_in_model_name"),
-    "should be one of"
+    model_bert_pretrained("typo_in_bert_type"),
+    "`bert_type` must be one of"
   )
 
 
-  tiny_bert_model <- make_and_load_bert("bert_tiny_uncased")
+  tiny_bert_model <- model_bert_pretrained("bert_tiny_uncased")
 
   n_inputs <- 1
   n_token_max <- 128L
@@ -45,9 +45,12 @@ test_that("pre-trained bert works", {
   token_type_ids <- torch::torch_tensor(token_type_ids)
 
   tiny_bert_model$eval()
+
   test_results <- tiny_bert_model(
-    token_ids,
-    token_type_ids
+    list(
+      token_ids = token_ids,
+      token_type_ids = token_type_ids
+    )
   )
 
   # check initial embeddings
@@ -108,25 +111,5 @@ test_that("pre-trained bert works", {
     torch::as_array(test_att_wts),
     expected_result,
     tolerance = 0.0001
-  )
-})
-
-test_that("config_bert works as expected", {
-  expect_error(
-    config_bert("not_a_model", "embedding_size"),
-    class = "bad_model_name"
-  )
-  expect_error(
-    config_bert(letters, "embedding_size"),
-    class = "bad_model_name"
-  )
-
-  expect_identical(
-    config_bert("bert_tiny_uncased", "n_head"),
-    2L
-  )
-  expect_identical(
-    config_bert("bert_medium_uncased", "max_tokens"),
-    512L
   )
 })

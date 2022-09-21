@@ -2,7 +2,7 @@
 % Please edit documentation in R/bert.R
 \name{model_bert}
 \alias{model_bert}
-\title{BERT Model}
+\title{Construct a BERT Model}
 \usage{
 model_bert(
   embedding_size,
@@ -41,28 +41,29 @@ input sequence.}
 will recognize. (Two for BERT models.)}
 }
 \description{
-Construct a BERT model.
+BERT models are the family of transformer models popularized by Google's BERT
+(Bidirectional Encoder Representations from Transformers). They include any
+model with the same general structure.
 }
 \section{Shape}{
 
 
-  Inputs:
+Inputs:
 
-  With `sequence_length` <= `max_position_embeddings`:
+With \code{sequence_length} <= \code{max_position_embeddings}:
+\itemize{
+\item token_ids: \eqn{(*, sequence_length)}
+\item token_type_ids: \eqn{(*, sequence_length)}
+}
 
-  - token_ids: \eqn{(*, sequence_length)}
-
-  - token_type_ids: \eqn{(*, sequence_length)}
-
-  Output:
-
-  - initial_embeddings: \eqn{(*, sequence_length, embedding_size)}
-
-  - output_embeddings: list of \eqn{(*, sequence_length, embedding_size)} for
-  each transformer layer.
-
-  - attention_weights: list of \eqn{(*, n_head, sequence_length,
+Output:
+\itemize{
+\item initial_embeddings: \eqn{(*, sequence_length, embedding_size)}
+\item output_embeddings: list of \eqn{(*, sequence_length, embedding_size)} for
+each transformer layer.
+\item attention_weights: list of \eqn{(*, n_head, sequence_length,
   sequence_length)} for each transformer layer.
+}
 }
 
 \examples{

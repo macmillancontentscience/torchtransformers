@@ -22,14 +22,15 @@ weights.
 \section{Shape}{
 
 
-  Inputs:
+Inputs:
 
-  No input tensors. Optional input parameter to limit number of positions
-  (tokens) considered.
+No input tensors. Optional input parameter to limit number of positions
+(tokens) considered.
 
-  Output:
-
-  - \eqn{(*, max_position_embeddings, embedding_size)}
+Output:
+\itemize{
+\item \eqn{(*, max_position_embeddings, embedding_size)}
+}
 }
 
 \examples{

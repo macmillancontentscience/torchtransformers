@@ -23,16 +23,16 @@ weights and the output embeddings.
 
 
 Inputs:
-
-- input: \eqn{(*, sequence_length, embedding_size)}
-
-- optional mask: \eqn{(*, sequence_length)}
+\itemize{
+\item input: \eqn{(*, sequence_length, embedding_size)}
+\item optional mask: \eqn{(*, sequence_length)}
+}
 
 Output:
-
-- embeddings: \eqn{(*, sequence_length, embedding_size)}
-
-- weights: \eqn{(*, n_head, sequence_length, sequence_length)}
+\itemize{
+\item embeddings: \eqn{(*, sequence_length, embedding_size)}
+\item weights: \eqn{(*, n_head, sequence_length, sequence_length)}
+}
 }
 
 \examples{

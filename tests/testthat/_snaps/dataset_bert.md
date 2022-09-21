@@ -9,7 +9,7 @@
           .getitem: function (index) 
           .length: function () 
           clone: function (deep = FALSE) 
-          initialize: function (x, y = NULL, n_tokens = 128L) 
+          initialize: function (x, y = NULL, tokenizer = tokenize_bert, n_tokens = 128L) 
           token_types: torch_tensor, R7
           tokenized_text: torch_tensor, R7
           y: torch_tensor, R7
@@ -94,7 +94,7 @@
           .getitem: function (index) 
           .length: function () 
           clone: function (deep = FALSE) 
-          initialize: function (x, y = NULL, n_tokens = 128L) 
+          initialize: function (x, y = NULL, tokenizer = tokenize_bert, n_tokens = 128L) 
           token_types: torch_tensor, R7
           tokenized_text: torch_tensor, R7
           y: torch_tensor, R7
@@ -179,7 +179,7 @@
           .getitem: function (index) 
           .length: function () 
           clone: function (deep = FALSE) 
-          initialize: function (x, y = NULL, n_tokens = 128L) 
+          initialize: function (x, y = NULL, tokenizer = tokenize_bert, n_tokens = 128L) 
           token_types: torch_tensor, R7
           tokenized_text: torch_tensor, R7
           y: torch_tensor, R7
@@ -262,7 +262,7 @@
           .getitem: function (index) 
           .length: function () 
           clone: function (deep = FALSE) 
-          initialize: function (x, y = NULL, n_tokens = 128L) 
+          initialize: function (x, y = NULL, tokenizer = tokenize_bert, n_tokens = 128L) 
           token_types: torch_tensor, R7
           tokenized_text: torch_tensor, R7
           y: torch_tensor, R7

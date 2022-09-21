@@ -22,14 +22,15 @@ the result to the residual, then applies layer normalization to the sum.
 
 
 Inputs:
-
-- input: \eqn{(*, input_size)}
-
-- residual: \eqn{(*, output_size)}
+\itemize{
+\item input: \eqn{(*, input_size)}
+\item residual: \eqn{(*, output_size)}
+}
 
 Output:
-
-- \eqn{(*, output_size)}
+\itemize{
+\item \eqn{(*, output_size)}
+}
 }
 
 \examples{

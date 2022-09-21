@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# General BERT dataset ----------------------------------------------------
+
 #' BERT Dataset
 #'
 #' Prepare a dataset for BERT-like models.
@@ -19,20 +21,40 @@
 #' @param x A data.frame with one or more character predictor columns.
 #' @param y A factor of outcomes, or a data.frame with a single factor column.
 #'   Can be NULL (default).
+#' @param tokenizer A tokenization function (signature compatible with
+#'   `tokenize_bert`).
 #' @inheritParams tokenize_bert
 #'
-#' @return An initialized \code{\link[torch]{dataset}}.
+#' @return An initialized [torch::dataset()].
 #'
 #' @export
 dataset_bert <- torch::dataset(
   name = "bert_dataset",
-  initialize = function(x, y = NULL, n_tokens = 128L) {
+
+  # TODO: Update something similar to dataset_bert_pretrained, but probably just
+  # using user-defined tokenizer scheme names/less-rigorous checking (and no
+  # built-in tokenization).
+
+  ## methods -------------------------------------------------------------------
+  #' @section Methods:
+  #' \describe{
+
+  ### initialize ---------------------------------------------------------------
+  #' \item{`initialize`}{Initialize this dataset. This method is called when the
+  #' dataset is first created.}
+  initialize = function(x,
+                        y = NULL,
+                        # TODO: Because tokenize_bert is defined later, R CMD
+                        # check doesn't like this, but then it runs fine. Fix
+                        # before CRAN attempts.
+                        tokenizer = tokenize_bert,
+                        n_tokens = 128L) {
     # Eventually this should be exported somewhere. It's a super quick version
     # of something I'm also implementing in tidybert.
     stopifnot(all(purrr::map_lgl(x, is.character)))
 
     tokenized_text <- do.call(
-      tokenize_bert,
+      tokenizer,
       c(
         x,
         list(n_tokens = n_tokens)
@@ -48,7 +70,11 @@ dataset_bert <- torch::dataset(
     # Also supply the labels as tensors.
     self$y <- torch::torch_tensor(as.integer(y))
   },
-  # We extract subsets of this data using an index.
+
+  ### .getitem -----------------------------------------------------------------
+  #' \item{`.getitem`}{Fetch an individual predictor (and, if available, the
+  #' associated outcome). This function is called automatically by `{luz}`
+  #' during the fitting process.}
   .getitem = function(index) {
     if (length(self$y)) {
       target <- self$y[index]
@@ -64,50 +90,13 @@ dataset_bert <- torch::dataset(
       target
     )
   },
+
+  ### .length ------------------------------------------------------------------
+  #' \item{`.length`}{Determine the length of the dataset (the number of rows of
+  #' predictors). Generally superseded by instead calling [length()].}
   .length = function() {
     dim(self$tokenized_text)[[1]]
   }
+
+  #' }
 )
-
-#' Standardize BERT Dataset Outcome
-#'
-#' @param y A potential outcome variable. Should be a factor, a data.frame with
-#'   a single factor column, or NULL.
-#'
-#' @return A factor or NULL.
-#' @keywords internal
-.standardize_bert_dataset_outcome <- function(y) {
-  UseMethod(".standardize_bert_dataset_outcome")
-}
-
-#' @export
-.standardize_bert_dataset_outcome.default <- function(y) {
-  rlang::abort(
-    message = paste(
-      "The outcome must be NULL,",
-      "a factor,",
-      "or a data.frame with a single factor column"
-    ),
-    class = "bad_outcome",
-    call = rlang::caller_env()
-  )
-}
-
-#' @export
-.standardize_bert_dataset_outcome.NULL <- function(y) {
-  return(y)
-}
-
-#' @export
-.standardize_bert_dataset_outcome.factor <- function(y) {
-  return(y)
-}
-
-#' @export
-.standardize_bert_dataset_outcome.data.frame <- function(y) {
-  stopifnot(
-    ncol(y) == 1,
-    is.factor(y[[1]])
-  )
-  return(y[[1]])
-}

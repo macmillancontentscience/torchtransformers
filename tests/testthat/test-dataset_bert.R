@@ -1,29 +1,16 @@
-test_that("dataset_bert implementation works", {
-  # Include these as separate tests mostly to make sure coverage checks see that
-  # we test them. It's also theoretically useful to separate these out to avoid
-  # debugging issues with torch.
-  original_data <- data.frame(
-    x1 = c("Some text", "More text"),
-    x2 = c("Still more", "Also another"),
-    result = factor(c("a", "b"))
-  )
-  predictors <- dplyr::select(original_data, x1, x2)
-  outcome <- dplyr::select(original_data, result)
-
-  expect_error(
-    .standardize_bert_dataset_outcome(as.character(outcome$result)),
-    class = "bad_outcome"
-  )
-
-  test_result_df <- .standardize_bert_dataset_outcome(outcome)
-  expect_identical(test_result_df, outcome$result)
-
-  test_result_factor <- .standardize_bert_dataset_outcome(outcome$result)
-  expect_identical(test_result_factor, outcome$result)
-
-  test_result_null <- .standardize_bert_dataset_outcome(NULL)
-  expect_null(test_result_null)
-})
+# Copyright 2022 Bedford Freeman & Worth Pub Grp LLC DBA Macmillan Learning.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 test_that("dataset_bert works", {
   original_data <- data.frame(
@@ -31,15 +18,8 @@ test_that("dataset_bert works", {
     x2 = c("Still more", "Also another"),
     result = factor(c("a", "b"))
   )
-  # For the moment we're strict about the input; we deal with lots of different
-  # input formats in tidybert.
   predictors <- dplyr::select(original_data, x1, x2)
   outcome <- dplyr::select(original_data, result)
-
-  expect_error(
-    dataset_bert(predictors, as.character(outcome$result)),
-    class = "bad_outcome"
-  )
 
   test_result_df <- dataset_bert(predictors, outcome)
   expect_snapshot(test_result_df)

@@ -18,7 +18,7 @@ standard.}
 }
 \value{
 An object of class "bert_tokens", which is a list containing a matrix
-  of token ids, a matrix of token type ids, and a matrix of token names.
+of token ids, a matrix of token type ids, and a matrix of token names.
 }
 \description{
 Clean and Return BERT Tokens
