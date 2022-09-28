@@ -78,16 +78,24 @@ test_that("dataset outcome standardization works.", {
     outcome
   )
 
+  outcome <- 1:10
+  outcome_df <- data.frame(result = outcome)
+
+  expect_identical(
+    .standardize_bert_dataset_outcome(outcome),
+    outcome
+  )
+  expect_identical(
+    .standardize_bert_dataset_outcome(outcome_df),
+    outcome
+  )
+
   expect_null(
     .standardize_bert_dataset_outcome(NULL)
   )
 
   expect_error(
     .standardize_bert_dataset_outcome(as.character(outcome)),
-    class = "bad_outcome"
-  )
-  expect_error(
-    .standardize_bert_dataset_outcome(1:10),
     class = "bad_outcome"
   )
 })

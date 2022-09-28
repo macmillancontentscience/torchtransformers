@@ -7,8 +7,8 @@
 .standardize_bert_dataset_outcome(y)
 }
 \arguments{
-\item{y}{A potential outcome variable. Should be a factor, a data.frame with
-a single factor column, or NULL.}
+\item{y}{A potential outcome variable. Should be a numeric vector, a factor,
+a data.frame with a single compatible column, or NULL.}
 }
 \value{
 A factor or NULL.
