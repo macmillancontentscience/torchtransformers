@@ -203,8 +203,8 @@
 
 #' Standardize BERT Dataset Outcome
 #'
-#' @param y A potential outcome variable. Should be a factor, a data.frame with
-#'   a single factor column, or NULL.
+#' @param y A potential outcome variable. Should be a numeric vector, a factor,
+#'   a data.frame with a single compatible column, or NULL.
 #'
 #' @return A factor or NULL.
 #' @keywords internal
@@ -220,7 +220,8 @@
     i = paste(
       "The outcome must be NULL,",
       "a factor,",
-      "or a data.frame with a single factor column."
+      "a numeric vector,",
+      "or a data.frame with a single compatible column."
     ),
     x = glue::glue(
       "`y` is a(n) {classname}"
@@ -244,10 +245,15 @@
 }
 
 #' @export
+.standardize_bert_dataset_outcome.numeric <- function(y) {
+  return(y)
+}
+
+#' @export
 .standardize_bert_dataset_outcome.data.frame <- function(y) {
   stopifnot(
     ncol(y) == 1,
-    is.factor(y[[1]])
+    is.factor(y[[1]]) | is.numeric(y[[1]])
   )
   return(y[[1]])
 }
