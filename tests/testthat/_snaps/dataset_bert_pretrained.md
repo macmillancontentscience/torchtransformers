@@ -57,8 +57,8 @@
       
       [[2]]
       torch_tensor
-      1
-      [ CPULongType{} ]
+       1
+      [ CPULongType{1} ]
       
 
 # dataset_bert_pretrained can partially set tokenization info.
@@ -120,8 +120,8 @@
       
       [[2]]
       torch_tensor
-      1
-      [ CPULongType{} ]
+       1
+      [ CPULongType{1} ]
       
 
 # dataset_bert_pretrained can do it all in one go.
@@ -183,7 +183,7 @@
       
       [[2]]
       torch_tensor
-      1
-      [ CPULongType{} ]
+       1
+      [ CPULongType{1} ]
       
 
