@@ -258,7 +258,7 @@ dataset_bert_pretrained <- torch::dataset(
   #' (or by letting the {luz} modeling process fit automatically).}
   .getitem = function(index) {
     if (length(self$torch_data$y)) {
-      target <- torch::torch_tensor(self$torch_data$y[index])
+      target <- torch::torch_tensor(self$torch_data$y)[index]
     } else {
       target <- list()
     }
