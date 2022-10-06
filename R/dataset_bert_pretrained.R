@@ -78,13 +78,18 @@ dataset_bert_pretrained <- torch::dataset(
     # it so it's the same shape no matter where we go after this.
     self$torch_data <- list(
       x = list(
-        token_ids = torch::torch_tensor(integer(0)),
-        token_type_ids = torch::torch_tensor(integer(0))
+        # TESTING
+        # token_ids = torch::torch_tensor(integer(0)),
+        token_ids = integer(0),
+        # token_type_ids = torch::torch_tensor(integer(0))
+        token_type_ids = integer(0)
       ),
-      y = torch::torch_tensor(integer(0))
+      # y = torch::torch_tensor(integer(0))
+      y = integer(0)
     )
 
-    self$torch_data$y <- torch::torch_tensor(private$input_data$y)
+    # self$torch_data$y <- torch::torch_tensor(private$input_data$y)
+    self$torch_data$y <- private$input_data$y
 
     # Log the tokenizer info if known.
     private$tokenizer_metadata <- .validate_tokenizer_metadata(
@@ -101,6 +106,10 @@ dataset_bert_pretrained <- torch::dataset(
         private$tokenizer_metadata$n_tokens
       )
     }
+
+    # A check parameter, used to easily determine whether we need to reload the
+    # data. Based on https://github.com/mlverse/tabnet/blob/e08f76dbdb0e9bc1bc395ee081b874ee1fa80367/R/tab-network.R#L398
+    self$.check <- torch::torch_tensor(1)
   },
 
   ### tokenize -----------------------------------------------------------------
@@ -189,9 +198,12 @@ dataset_bert_pretrained <- torch::dataset(
 
     # TODO: For the moment we assume that succeeded since tokenize_bert didn't
     # complain.
+    # TESTING
     self$torch_data$x <- list(
-      token_ids = torch::torch_tensor(tokenized$token_ids),
-      token_type_ids = torch::torch_tensor(tokenized$token_type_ids)
+      # token_ids = torch::torch_tensor(tokenized$token_ids),
+      token_ids = tokenized$token_ids,
+      # token_type_ids = torch::torch_tensor(tokenized$token_type_ids)
+      token_type_ids = tokenized$token_type_ids
     )
 
     private$tokenized <- TRUE
@@ -271,10 +283,14 @@ dataset_bert_pretrained <- torch::dataset(
     return(
       list(
         list(
-          token_ids = self$torch_data$x$token_ids[index, ],
-          token_type_ids = self$torch_data$x$token_type_ids[index, ]
+          # TESTING
+          # token_ids = self$torch_data$x$token_ids[index, ],
+          token_ids = torch::torch_tensor(self$torch_data$x$token_ids)[index, ],
+          # token_type_ids = self$torch_data$x$token_type_ids[index, ]
+          token_type_ids = torch::torch_tensor(self$torch_data$x$token_type_ids)[index, ]
         ),
-        target
+        # target
+        torch::torch_tensor(target)
       )
     )
   },
@@ -285,7 +301,9 @@ dataset_bert_pretrained <- torch::dataset(
   #' during the fitting process.}
   .getbatch = function(index) {
     if (length(self$torch_data$y)) {
-      target <- self$torch_data$y[index, drop = FALSE]
+      # TESTING
+      # target <- self$torch_data$y[index, drop = FALSE]
+      target <- torch::torch_tensor(self$torch_data$y)[index, drop = FALSE]
     } else {
       target <- list()
     }
@@ -298,10 +316,11 @@ dataset_bert_pretrained <- torch::dataset(
     return(
       list(
         list(
-          token_ids = self$torch_data$x$token_ids[drop = FALSE, index, ],
-          token_type_ids = self$torch_data$x$token_type_ids[
-            drop = FALSE, index,
-          ]
+          # TESTING
+          # token_ids = self$torch_data$x$token_ids[drop = FALSE, index, ],
+          token_ids = torch::torch_tensor(self$torch_data$x$token_ids)[drop = FALSE, index, ],
+          # token_type_ids = self$torch_data$x$token_type_ids[drop = FALSE, index,]
+          token_type_ids = torch::torch_tensor(self$torch_data$x$token_type_ids)[drop = FALSE, index,]
         ),
         target
       )
