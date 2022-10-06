@@ -63,12 +63,12 @@ dataset_bert <- torch::dataset(
 
     y <- .standardize_bert_dataset_outcome(y)
 
-    # We supply the data as tensors.
-    self$tokenized_text <- torch::torch_tensor(tokenized_text$token_ids)
-    self$token_types <- torch::torch_tensor(tokenized_text$token_type_ids)
+    # The data will be converted into tensors in .getitem.
+    self$tokenized_text <- tokenized_text$token_ids
+    self$token_types <- tokenized_text$token_type_ids
 
-    # Also supply the labels as tensors.
-    self$y <- torch::torch_tensor(as.integer(y))
+    # The labels will be converted into tensors in .getitem.
+    self$y <- as.integer(y)
   },
 
   ### .getitem -----------------------------------------------------------------
@@ -77,15 +77,15 @@ dataset_bert <- torch::dataset(
   #' during the fitting process.}
   .getitem = function(index) {
     if (length(self$y)) {
-      target <- self$y[index]
+      target <- torch::torch_tensor(self$y)[index]
     } else {
       target <- list()
     }
 
     list(
       list(
-        token_ids = self$tokenized_text[index, ],
-        token_type_ids = self$token_types[index, ]
+        token_ids = torch::torch_tensor(self$tokenized_text)[index, ],
+        token_type_ids = torch::torch_tensor(self$token_types)[index, ]
       ),
       target
     )
