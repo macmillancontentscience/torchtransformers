@@ -9,7 +9,7 @@
     Warning <simpleWarning>
       argument is not numeric or logical: returning NA
     Output
-      * Avg time per training batch: NA
+      * Avg time per training epoch: NA
       
       -- Results ---------------------------------------------------------------------
       Metrics observed in the last epoch.
@@ -35,7 +35,7 @@
         Public:
           call: function (callback_nm) 
           clone: function (deep = FALSE) 
-          initialize: function () 
+          initialize: function (submodel_name = NULL, n_tokens = NULL, verbose = TRUE) 
           n_tokens: NULL
           on_fit_begin: function () 
           on_predict_begin: function () 
@@ -53,7 +53,7 @@
         Public:
           call: function (callback_nm) 
           clone: function (deep = FALSE) 
-          initialize: function () 
+          initialize: function (submodel_name = NULL, n_tokens = NULL, verbose = TRUE) 
           n_tokens: NULL
           on_fit_begin: function () 
           on_predict_begin: function () 
@@ -71,7 +71,7 @@
         Public:
           call: function (callback_nm) 
           clone: function (deep = FALSE) 
-          initialize: function () 
+          initialize: function (submodel_name = NULL, n_tokens = NULL, verbose = TRUE) 
           n_tokens: 32
           on_fit_begin: function () 
           on_predict_begin: function () 
@@ -89,7 +89,7 @@
         Public:
           call: function (callback_nm) 
           clone: function (deep = FALSE) 
-          initialize: function () 
+          initialize: function (submodel_name = NULL, n_tokens = NULL, verbose = TRUE) 
           n_tokens: NULL
           on_fit_begin: function () 
           on_predict_begin: function () 
