@@ -60,7 +60,8 @@ test_that("luz callback works.", {
         epochs = 1,
         callbacks = list(
           luz_callback_bert_tokenize("bert")
-        )
+        ),
+        dataloader_options = list(drop_last = FALSE)
       )
     },
     "Confirming train_data tokenization"
