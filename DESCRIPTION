@@ -1,6 +1,6 @@
 Package: torchtransformers
 Title: Transformer Models in Torch
-Version: 0.0.0.9600
+Version: 0.0.0.9700
 Authors@R: c(
     person(given = "Jonathan",
            family = "Bratt",
